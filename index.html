@@ -463,6 +463,14 @@ function mergeApiData(apiRows, baseDailyData){
     if(!byDate[d])byDate[d]={};
     byDate[d][row.venue]=row;
   }
+  // 把有真實資料的館別，清除所有沒有 API 資料的日期的假資料
+  const venuesWithData=new Set();
+  for(const vs of Object.values(byDate))for(const v of Object.keys(vs))venuesWithData.add(v);
+  for(const [date,dayData] of Object.entries(merged)){
+    for(const v of venuesWithData){
+      if(!byDate[date]?.[v]&&merged[date].venues[v])merged[date].venues[v]=null;
+    }
+  }
   for(const [date,venues] of Object.entries(byDate)){
     if(!merged[date]){
       const d=new Date(date);const dow=d.getDay();
@@ -496,10 +504,8 @@ function mergeApiData(apiRows, baseDailyData){
 function nf(n){if(n==null||isNaN(n))return"—";return new Intl.NumberFormat("zh-TW").format(Math.round(n));}
 function nfShort(n){
   if(n==null||isNaN(n))return"—";const abs=Math.abs(n);
-  if(abs>=1e8)return(n/1e8).toFixed(2)+" 億";
-  if(abs>=1e7)return(n/1e7).toFixed(2)+" 千萬";
-  if(abs>=1e6)return(n/1e6).toFixed(1)+"M";
-  if(abs>=1e4)return(n/1e4).toFixed(1)+" 萬";
+  if(abs>=1e8)return(n/1e8).toFixed(1)+" 億";
+  if(abs>=1e4){const w=Math.round(n/1e4*10)/10;return(w===Math.floor(w)?w.toFixed(0):w.toFixed(1))+" 萬";}
   return nf(n);
 }
 function nfPct(n,d=1){if(n==null||isNaN(n))return"—";return(n*100).toFixed(d)+"%";}
