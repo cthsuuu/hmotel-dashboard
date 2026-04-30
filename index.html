@@ -456,20 +456,16 @@ function generateDaily(seed=42){
 
 // -------- API → internal format 轉換 --------
 function mergeApiData(apiRows, baseDailyData){
-  const merged={...baseDailyData};
+  // 保留日期元資料（節假日/星期），但清空所有假資料
+  const merged={};
+  for(const [date,dayData] of Object.entries(baseDailyData)){
+    merged[date]={...dayData,venues:{}};
+  }
   const byDate={};
   for(const row of apiRows){
     const d=typeof row.date==='string'?row.date:isoDate(new Date(row.date));
     if(!byDate[d])byDate[d]={};
     byDate[d][row.venue]=row;
-  }
-  // 把有真實資料的館別，清除所有沒有 API 資料的日期的假資料
-  const venuesWithData=new Set();
-  for(const vs of Object.values(byDate))for(const v of Object.keys(vs))venuesWithData.add(v);
-  for(const [date,dayData] of Object.entries(merged)){
-    for(const v of venuesWithData){
-      if(!byDate[date]?.[v]&&merged[date].venues[v])merged[date].venues[v]=null;
-    }
   }
   for(const [date,venues] of Object.entries(byDate)){
     if(!merged[date]){
