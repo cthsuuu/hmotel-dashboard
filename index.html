@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HMOTEL 營收儀錶板</title>
+
+<!-- =====================================================================
+  ★ 設定區 — 只需修改這裡！
+  ====================================================================== -->
+<script>
+const HMOTEL_PASSWORD = '90842926'; // ← 儀錶板密碼
+
+const HMOTEL_CONFIG = {
+  // 1. 貼上你的 Google Apps Script Web App URL（設定好之後取代這行）
+  //    範例: 'https://script.google.com/macros/s/AKfycbxXXXXX/exec'
+  API_URL: 'https://script.google.com/macros/s/AKfycbzcJS4YWBCd-wmH1nz2pEQ1Bj7iyxhxxXNL7nBFjCQeqdZy7UY-NS4uKsLzXgodCU6P/exec',
+
+  // 2. 月營收目標（新台幣）
+  MONTHLY_TARGET: 16500000,
+
+  // 3. 儀表板標題（可自訂）
+  TITLE: 'HMOTEL 營收儀錶板',
+};
+</script>
+<!-- ===================================================================== -->
+
+<style>
+/* =========================================================
+   HMOTEL Design System — Colors & Typography Tokens
+   ========================================================= */
+:root {
+  --hm-yellow:        #EFE54F;
+  --hm-yellow-deep:   #E5DA2E;
+  --hm-yellow-soft:   #F8F2A4;
+  --hm-yellow-pale:   #FBF8D8;
+  --hm-gray:          #585755;
+  --hm-gray-deep:     #3B3A38;
+  --hm-gray-mid:      #8A8985;
+  --hm-gray-soft:     #C9C7C2;
+  --hm-gray-pale:     #EFEDE8;
+  --hm-cream:         #FBF9F2;
+  --hm-ink:           #1C1B19;
+  --hm-paper:         #FFFFFF;
+  --xy-champagne:     #C9A86A;
+  --xy-champagne-deep:#A88847;
+  --xy-stone:         #2A2622;
+  --xy-linen:         #EFE7D5;
+  --jt-red:           #D6233B;
+  --jt-red-deep:      #A8132B;
+  --jt-black:         #0C0C0E;
+  --color-bg:               var(--hm-paper);
+  --color-bg-alt:           var(--hm-cream);
+  --color-surface:          var(--hm-paper);
+  --color-surface-alt:      var(--hm-gray-pale);
+  --color-fg:               var(--hm-gray-deep);
+  --color-fg-strong:        var(--hm-ink);
+  --color-fg-muted:         var(--hm-gray-mid);
+  --color-fg-subtle:        var(--hm-gray-soft);
+  --color-border:           var(--hm-gray-soft);
+  --color-border-strong:    var(--hm-gray);
+  --color-divider:          rgba(88,87,85,0.12);
+  --color-accent:           var(--hm-yellow);
+  --color-success:          #4F8A5C;
+  --color-warning:          #C99A2C;
+  --color-danger:           #C0392B;
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;
+  --space-6:32px;--space-7:48px;--space-8:64px;--space-9:96px;
+  --radius-xs:2px;--radius-sm:6px;--radius-md:10px;--radius-lg:16px;
+  --radius-xl:24px;--radius-pill:999px;
+  --shadow-xs:0 1px 2px rgba(28,27,25,.06);
+  --shadow-sm:0 2px 6px rgba(28,27,25,.08);
+  --shadow-md:0 6px 16px rgba(28,27,25,.10);
+  --shadow-lg:0 16px 40px rgba(28,27,25,.14);
+  --font-sans:"Inter","Noto Sans TC","PingFang TC","Microsoft JhengHei",
+              -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --font-display:"Inter","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --font-serif:"Noto Serif TC","Source Han Serif TC",Georgia,serif;
+  --font-mono:"JetBrains Mono","IBM Plex Mono","Roboto Mono",ui-monospace,
+              SFMono-Regular,Menlo,Consolas,monospace;
+  --fs-xs:12px;--fs-sm:14px;--fs-base:16px;--fs-md:18px;--fs-lg:20px;
+  --fs-xl:24px;--fs-2xl:32px;--fs-3xl:40px;--fs-4xl:56px;
+  --lh-tight:1.10;--lh-snug:1.25;--lh-normal:1.45;--lh-relaxed:1.65;
+  --tracking-tight:-0.02em;--tracking-normal:0;--tracking-wide:0.04em;
+  --tracking-wider:0.12em;--tracking-widest:0.24em;
+  --weight-regular:400;--weight-medium:500;--weight-semi:600;
+  --weight-bold:700;--weight-black:900;
+  --ease-standard:cubic-bezier(0.4,0.0,0.2,1);
+  --ease-emph:cubic-bezier(0.2,0.0,0.0,1);
+  --ease-out:cubic-bezier(0.0,0.0,0.2,1);
+  --dur-fast:120ms;--dur-base:200ms;--dur-slow:360ms;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+body {
+  font-family:var(--font-sans);
+  background:var(--hm-cream);
+  color:var(--color-fg);
+  line-height:var(--lh-normal);
+  overflow-x:hidden;
+}
+.wordmark { font-family:var(--font-display);font-weight:var(--weight-bold);
+  letter-spacing:var(--tracking-widest);text-transform:uppercase; }
+.eyebrow { font-family:var(--font-sans);font-size:var(--fs-xs);
+  font-weight:var(--weight-semi);text-transform:uppercase;
+  letter-spacing:var(--tracking-wider);color:var(--color-fg-muted); }
+.mono-tabular { font-family:var(--font-mono);font-feature-settings:"tnum" 1,"zero" 1; }
+.muted { color:var(--hm-gray-mid); }
+.text-xs { font-size:var(--fs-xs); }
+
+/* ===== App Layout ===== */
+.app { max-width:1680px;margin:0 auto;padding:0 var(--space-6) var(--space-8); }
+.app.is-dense { --card-pad:var(--space-4);--kpi-h:110px; }
+.app:not(.is-dense) { --card-pad:var(--space-5);--kpi-h:138px; }
+
+/* ===== Header ===== */
+.hdr {
+  position:sticky;top:0;z-index:20;background:var(--hm-paper);
+  border-bottom:1px solid var(--color-border);
+  padding:var(--space-4) var(--space-6);
+  margin:0 calc(-1 * var(--space-6)) var(--space-6);
+  display:flex;align-items:center;gap:var(--space-5);
+  box-shadow:var(--shadow-xs);
+}
+.hdr-left,.hdr-mid,.hdr-right { display:flex;align-items:center;gap:var(--space-4); }
+.hdr-mid { flex:1;justify-content:center; }
+.hdr-right { justify-content:flex-end; }
+.brand { display:flex;align-items:center;gap:12px; }
+.brand-mark { width:36px;height:36px;object-fit:contain;border-radius:var(--radius-sm); }
+.brand-text { display:flex;flex-direction:column;gap:2px; }
+.brand-name { font-size:18px;font-weight:var(--weight-bold);
+  letter-spacing:var(--tracking-widest);color:var(--hm-gray-deep); }
+.brand-sub { font-size:10px;color:var(--hm-gray-mid);letter-spacing:var(--tracking-wide); }
+.seg { display:inline-flex;background:var(--hm-gray-pale);border-radius:var(--radius-pill);padding:3px;gap:2px; }
+.seg-btn { border:none;background:transparent;color:var(--hm-gray-deep);font-size:13px;
+  font-weight:var(--weight-semi);padding:8px 16px;border-radius:var(--radius-pill);
+  cursor:pointer;transition:all var(--dur-base) var(--ease-standard);
+  display:flex;flex-direction:column;align-items:center;gap:2px; }
+.seg-btn small { font-size:9px;font-weight:var(--weight-regular);
+  color:var(--hm-gray-mid);letter-spacing:0.06em; }
+.seg-btn.is-active { background:var(--hm-yellow);color:var(--hm-gray-deep);box-shadow:var(--shadow-xs); }
+.seg-btn:hover:not(.is-active) { background:rgba(239,229,79,0.20); }
+.view-tabs { display:flex;gap:4px; }
+.view-tab {
+  border:none;background:transparent;color:var(--hm-gray-mid);font-size:12px;
+  font-weight:var(--weight-semi);padding:6px 14px;border-radius:var(--radius-pill);
+  cursor:pointer;transition:all var(--dur-base) var(--ease-standard);
+  display:inline-flex;align-items:center;gap:6px; letter-spacing:0.04em;
+}
+.view-tab.is-active { background:var(--hm-yellow-pale);color:var(--hm-gray-deep);
+  border:1px solid var(--hm-yellow); }
+.view-tab:hover:not(.is-active) { background:var(--hm-gray-pale); }
+.dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.dot-combined { background:var(--hm-ink); }
+.dot-xiyue { background:var(--xy-champagne); }
+.dot-jiati { background:var(--jt-red); }
+.btn-ghost-sm { border:1px solid var(--color-border);background:transparent;
+  color:var(--hm-gray-mid);font-size:11px;font-weight:var(--weight-semi);
+  padding:5px 10px;border-radius:var(--radius-pill);cursor:pointer;
+  letter-spacing:0.04em;transition:all var(--dur-base); }
+.btn-ghost-sm:hover { background:var(--hm-gray-pale);color:var(--hm-gray-deep); }
+.btn-primary-sm { border:none;background:var(--hm-yellow);color:var(--hm-gray-deep);
+  font-size:12px;font-weight:var(--weight-semi);padding:6px 12px;
+  border-radius:var(--radius-pill);cursor:pointer; }
+.range-pop { position:absolute;top:100%;right:var(--space-6);margin-top:8px;
+  background:var(--hm-paper);border:1px solid var(--color-border);
+  border-radius:var(--radius-md);box-shadow:var(--shadow-md);
+  padding:var(--space-3);display:flex;gap:8px;align-items:center;z-index:50; }
+.range-pop label { font-size:12px;color:var(--hm-gray-mid);display:flex;align-items:center;gap:4px; }
+.range-pop input[type=date] { border:1px solid var(--color-border);border-radius:var(--radius-sm);
+  padding:4px 8px;font:inherit;font-size:12px; }
+
+/* ===== KPI Strip ===== */
+.kpi-strip { display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:var(--space-5); }
+.kpi-card { background:var(--hm-paper);border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-xs);padding:var(--card-pad,var(--space-5)); }
+.kpi-head { display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px; }
+.kpi-tag { font-size:10px;font-weight:var(--weight-semi);padding:2px 8px;
+  border-radius:var(--radius-pill);letter-spacing:0.06em; }
+.tag-ok { background:#E8F5EC;color:#2D7A44; }
+.tag-warn { background:#FEF5E3;color:#A06500; }
+.tag-neutral { background:var(--hm-gray-pale);color:var(--hm-gray); }
+.kpi-big { font-size:28px;font-weight:var(--weight-bold);color:var(--hm-ink);
+  font-family:var(--font-mono);line-height:1.1;margin-bottom:4px; }
+.kpi-sub { font-size:12px;color:var(--hm-gray-mid);margin-bottom:8px; }
+.kpi-extra { margin-top:12px; }
+
+/* ===== Cards ===== */
+.card { background:var(--hm-paper);border:1px solid var(--color-border);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-xs);
+  padding:var(--card-pad,var(--space-5));margin-bottom:var(--space-5); }
+.card-compact { padding:var(--space-4); }
+.card-head { display:flex;justify-content:space-between;align-items:flex-start;
+  margin-bottom:var(--space-4); }
+.card-title { font-size:16px;font-weight:var(--weight-semi);color:var(--hm-ink);margin:4px 0 0; }
+.card-title-sm { font-size:14px;font-weight:var(--weight-semi);color:var(--hm-ink);margin:4px 0 0; }
+.legend-row { display:flex;flex-wrap:wrap;gap:6px;align-items:center; }
+.legend-pill { display:inline-flex;align-items:center;gap:4px;font-size:10px;
+  color:var(--hm-gray-mid);letter-spacing:0.04em; }
+.legend-pill i { width:10px;height:10px;border-radius:2px;flex-shrink:0; }
+.legend-pill .band-yellow { background:rgba(239,229,79,0.5);border:1px solid var(--hm-yellow); }
+.legend-pill .band-red { background:rgba(214,35,59,0.12);border:1px solid rgba(214,35,59,0.3); }
+.legend-divider { width:1px;height:12px;background:var(--color-border); }
+.big-trend .card-head { flex-wrap:wrap;gap:8px; }
+.trend-footer { display:flex;justify-content:space-between;align-items:center;
+  margin-top:8px;padding-top:8px;border-top:1px dashed var(--hm-gray-soft); }
+.chart-wrap { position:relative;overflow:visible; }
+
+/* ===== Grid Secondary ===== */
+.grid-secondary { display:grid;grid-template-columns:300px 1fr 1.15fr;gap:16px;margin-bottom:var(--space-5); }
+@media (max-width:1100px) { .grid-secondary { grid-template-columns:1fr 1fr; } }
+@media (max-width:720px) { .grid-secondary { grid-template-columns:1fr; } }
+
+/* ===== Heatmap ===== */
+.heatmap-legend { display:flex;align-items:center;gap:8px;font-size:11px;color:var(--hm-gray-mid); }
+.heat-grad { width:64px;height:8px;border-radius:999px;
+  background:linear-gradient(90deg,var(--hm-cream) 0%,var(--hm-yellow) 50%,var(--hm-gray) 100%); }
+
+/* ===== Drill-down Overlay ===== */
+.drill-overlay { position:fixed;inset:0;background:rgba(28,27,25,0.5);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:24px; }
+.drill-panel { background:var(--hm-paper);border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-xl);padding:var(--space-6);max-width:700px;width:100%;
+  max-height:80vh;overflow-y:auto; }
+.drill-head { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-5); }
+.drill-grid { display:grid;grid-template-columns:1fr 1fr;gap:var(--space-5); }
+@media (max-width:600px) { .drill-grid { grid-template-columns:1fr; } }
+.drill-venue { padding:var(--space-4);background:var(--hm-cream);border-radius:var(--radius-lg); }
+.drill-cats { display:grid;gap:5px;margin-top:10px; }
+.drill-cat-row { display:flex;align-items:center;gap:8px;font-size:12px; }
+.drill-cat-bar { flex:1;height:8px;background:var(--hm-gray-pale);border-radius:999px;overflow:hidden; }
+.drill-cat-bar > div { height:100%;border-radius:999px; }
+
+/* ===== Performance Metrics ===== */
+.tiny-toggle { border:none;background:rgba(255,255,255,0.9);color:var(--hm-gray-mid);
+  font-size:10px;font-weight:var(--weight-semi);padding:3px 8px;
+  border-radius:var(--radius-pill);cursor:pointer;transition:all var(--dur-base);
+  border:1px solid var(--hm-gray-soft); }
+.tiny-toggle:hover { background:rgba(255,255,255,0.7); }
+.tiny-toggle[data-active="true"] { background:var(--hm-yellow);color:var(--hm-gray-deep);border-color:var(--hm-yellow); }
+.perf-metric { display:flex;flex-direction:column;gap:6px; }
+.perf-label { font-size:11px;font-weight:var(--weight-semi);color:var(--hm-gray-deep);
+  display:flex;align-items:baseline;gap:6px; }
+.perf-hint { font-size:9px;color:var(--hm-gray-mid);font-weight:var(--weight-regular); }
+.perf-value { font-size:22px;font-weight:var(--weight-bold);color:var(--hm-ink); }
+.perf-bar { height:8px;background:var(--hm-gray-pale);border-radius:999px;overflow:hidden; }
+.perf-bar > div { height:100%;border-radius:999px;transition:width 400ms var(--ease-standard); }
+.occ-viz { display:grid;grid-template-columns:repeat(auto-fill,minmax(5px,1fr));gap:2px; }
+.occ-cell { display:block;aspect-ratio:1;background:var(--hm-gray-pale);border-radius:1px;transition:background 300ms; }
+.occ-cell.is-occ { background:var(--hm-yellow); }
+.heat-mode-btn { border:none;background:rgba(255,255,255,0.85);color:var(--hm-gray-mid);
+  font-size:10px;font-weight:var(--weight-semi);padding:4px 10px;
+  border-radius:var(--radius-pill);cursor:pointer;transition:all var(--dur-base);
+  box-shadow:var(--shadow-xs); }
+.heat-mode-btn:hover { background:#fff; }
+.heat-mode-btn[data-active="true"] { background:var(--hm-yellow);color:var(--hm-gray-deep); }
+.alert-row { display:grid;grid-template-columns:48px 1fr 60px 20px;
+  gap:8px;align-items:center;font-size:11px; }
+.alert-date { font-family:var(--font-mono);color:var(--hm-gray-mid);font-size:10px; }
+.alert-bar { height:10px;background:var(--hm-gray-pale);border-radius:999px;overflow:hidden; }
+.alert-row[data-status="ok"] .alert-bar > div { background:var(--hm-gray); }
+.alert-row[data-status="warn"] .alert-bar > div { background:var(--hm-yellow); }
+.alert-row[data-status="alert"] .alert-bar > div { background:#C0392B; }
+.alert-val { font-family:var(--font-mono);font-size:10px;text-align:right;color:var(--hm-gray-deep); }
+.alert-status { text-align:center;font-size:12px; }
+
+/* ===== Demo Banner ===== */
+.demo-banner {
+  background:linear-gradient(135deg,var(--hm-yellow-pale) 0%,var(--hm-yellow-soft) 100%);
+  border:1px solid var(--hm-yellow);border-radius:var(--radius-md);
+  padding:10px 16px;margin-bottom:var(--space-4);font-size:13px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.demo-banner a { color:var(--hm-gray-deep);font-weight:var(--weight-semi);text-decoration:underline;cursor:pointer; }
+
+/* ===== Password Gate ===== */
+.pw-gate { position:fixed;inset:0;background:var(--hm-cream);z-index:9999;
+  display:flex;align-items:center;justify-content:center; }
+.pw-box { background:var(--hm-paper);border:1px solid var(--color-border);
+  border-radius:var(--radius-xl);box-shadow:var(--shadow-lg);
+  padding:40px 48px;text-align:center;min-width:320px; }
+.pw-logo { width:52px;height:52px;background:var(--hm-yellow);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:900;color:var(--hm-gray-deep);
+  font-family:var(--font-display);margin:0 auto 16px; }
+.pw-title { font-size:20px;font-weight:700;color:var(--hm-ink);
+  letter-spacing:0.12em;margin-bottom:4px; }
+.pw-sub { font-size:12px;color:var(--hm-gray-mid);margin-bottom:28px; }
+.pw-input { width:100%;padding:12px 16px;font-size:18px;letter-spacing:0.2em;
+  text-align:center;border:2px solid var(--color-border);border-radius:var(--radius-md);
+  font-family:var(--font-mono);outline:none;transition:border-color 0.2s; }
+.pw-input:focus { border-color:var(--hm-yellow); }
+.pw-input.pw-error { border-color:var(--color-danger);animation:shake 0.3s; }
+.pw-btn { margin-top:16px;width:100%;padding:12px;background:var(--hm-yellow);
+  border:none;border-radius:var(--radius-md);font-size:15px;font-weight:700;
+  color:var(--hm-gray-deep);cursor:pointer;letter-spacing:0.08em;
+  transition:background 0.2s; }
+.pw-btn:hover { background:var(--hm-yellow-deep); }
+.pw-err-msg { margin-top:10px;font-size:12px;color:var(--color-danger);min-height:16px; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+/* ===== Loading ===== */
+.loading-screen { display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:50vh;gap:16px; }
+.spinner { width:36px;height:36px;border:3px solid var(--hm-gray-pale);
+  border-top-color:var(--hm-yellow);border-radius:50%;animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ===== Live Indicator ===== */
+.live-dot { display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--color-success);box-shadow:0 0 0 2px rgba(79,138,92,0.2);
+  animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 2px rgba(79,138,92,0.2);}
+  50%{box-shadow:0 0 0 5px rgba(79,138,92,0.1);} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- React 18 + Babel -->
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+
+<script type="text/babel">
+// =====================================================================
+// HMOTEL 營收儀錶板 — 完整整合版
+// 包含: 假資料生成器 / 圖表元件 / 主應用程式 / 即時資料載入
+// =====================================================================
+
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+// ---------- 節假日資料 ----------
+const HOLIDAYS = {
+  "2024-01-01":"元旦","2024-02-08":"小年夜","2024-02-09":"除夕","2024-02-10":"春節",
+  "2024-02-11":"春節","2024-02-12":"春節","2024-02-13":"春節","2024-02-14":"情人節",
+  "2024-02-28":"和平紀念日","2024-04-04":"兒童節","2024-04-05":"清明節",
+  "2024-06-10":"端午節","2024-09-17":"中秋節","2024-10-10":"國慶日","2024-12-25":"聖誕節",
+  "2025-01-01":"元旦","2025-01-27":"小年夜","2025-01-28":"除夕","2025-01-29":"春節",
+  "2025-01-30":"春節","2025-01-31":"春節","2025-02-01":"春節","2025-02-14":"情人節",
+  "2025-02-28":"和平紀念日","2025-04-04":"兒童節/清明","2025-05-31":"端午節",
+  "2025-10-06":"中秋節","2025-10-10":"國慶日","2025-12-25":"聖誕節","2025-12-31":"跨年",
+  "2026-01-01":"元旦","2026-02-14":"情人節","2026-02-16":"小年夜","2026-02-17":"除夕",
+  "2026-02-18":"春節","2026-02-19":"春節","2026-02-20":"春節","2026-02-21":"春節",
+  "2026-02-28":"和平紀念日","2026-04-04":"兒童節","2026-04-05":"清明節",
+  "2026-06-19":"端午節","2026-09-25":"中秋節","2026-10-10":"國慶日","2026-12-25":"聖誕節","2026-12-31":"跨年",
+};
+const HOLIDAY_CLUSTERS = [
+  {start:"2024-02-08",end:"2024-02-14",label:"農曆新年"},
+  {start:"2024-04-04",end:"2024-04-07",label:"清明連假"},
+  {start:"2024-10-10",end:"2024-10-13",label:"國慶連假"},
+  {start:"2024-12-30",end:"2025-01-01",label:"跨年連假"},
+  {start:"2025-01-25",end:"2025-02-02",label:"農曆新年"},
+  {start:"2025-04-03",end:"2025-04-06",label:"清明連假"},
+  {start:"2025-10-04",end:"2025-10-12",label:"中秋國慶"},
+  {start:"2025-12-30",end:"2026-01-01",label:"跨年連假"},
+  {start:"2026-02-14",end:"2026-02-22",label:"農曆新年"},
+  {start:"2026-04-03",end:"2026-04-06",label:"清明連假"},
+];
+const CATEGORIES = ["休息","住宿","加休","加人頭/床","餐飲","其他"];
+const VENUE_MIX = {
+  xiyue:{休息:0.29,住宿:0.47,加休:0.09,"加人頭/床":0.04,餐飲:0.07,其他:0.04},
+  jiati:{休息:0.41,住宿:0.37,加休:0.10,"加人頭/床":0.04,餐飲:0.05,其他:0.03},
+};
+const VENUE_BASE = {xiyue:245000,jiati:165000};
+const VENUE_ROOMS = {xiyue:32,jiati:26};
+const TOTAL_ROOMS = {combined:58,xiyue:32,jiati:26};
+
+function isoDate(d){return d.toISOString().slice(0,10);}
+function isHoliday(ds){return !!HOLIDAYS[ds];}
+function holidayLabel(ds){return HOLIDAYS[ds]||null;}
+function findHolidayCluster(ds){return HOLIDAY_CLUSTERS.find(c=>ds>=c.start&&ds<=c.end)||null;}
+
+function mulberry32(a){
+  return function(){
+    a|=0;a=(a+0x6D2B79F5)|0;
+    let t=Math.imul(a^(a>>>15),1|a);
+    t=(t+Math.imul(t^(t>>>7),61|t))^t;
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+
+function generateHourlyShape(venue,dow,holiday,rng){
+  const hours=new Array(24).fill(0);
+  const restPeak=15+(rng()-0.5);
+  const stayPeak=23+(rng()-0.5);
+  for(let h=0;h<24;h++){
+    const dRest=Math.exp(-Math.pow((h-restPeak)/2.4,2));
+    const stayH=h<4?h+24:h;
+    const dStay=Math.exp(-Math.pow((stayH-stayPeak)/3.0,2));
+    hours[h]=dRest*0.55+dStay*0.85;
+  }
+  if(dow===5||dow===6){for(let h=21;h<24;h++)hours[h]*=1.4;for(let h=0;h<4;h++)hours[h]*=1.3;}
+  if(holiday){for(let h=13;h<19;h++)hours[h]*=1.15;}
+  if(venue==='jiati'){for(let h=22;h<24;h++)hours[h]*=1.15;for(let h=0;h<5;h++)hours[h]*=1.15;}
+  const sum=hours.reduce((a,b)=>a+b,0);
+  return hours.map(x=>x/sum);
+}
+function generateCheckinDistribution(venue,dow,holiday,restCount,stayCount,rng){
+  const checkins=new Array(24).fill(0);
+  const restPeak=15+(rng()-0.5)*2;
+  for(let i=0;i<restCount;i++){const h=Math.max(0,Math.min(23,Math.round(restPeak+(rng()-0.5)*6)));checkins[h]++;}
+  const stayPeak=20+(rng()-0.5)*2;
+  for(let i=0;i<stayCount;i++){
+    const lateNight=rng()<0.15;
+    const h=lateNight?Math.floor(rng()*3):Math.max(0,Math.min(23,Math.round(stayPeak+(rng()-0.5)*5)));
+    checkins[h]++;
+  }
+  return checkins;
+}
+
+function generateDaily(seed=42){
+  const rng=mulberry32(seed);
+  const out={};
+  const today=new Date();today.setHours(0,0,0,0);
+  const start=new Date(today);start.setFullYear(today.getFullYear()-2);
+  const end=new Date(today);end.setDate(today.getDate()+90);
+  const cur=new Date(start);
+  const trend={xiyue:0.0007,jiati:0.0010};
+  const seasonal=[0.92,1.18,0.95,0.98,0.96,1.02,1.08,1.10,0.98,1.04,1.02,1.16];
+  let dayIdx=0;
+  while(cur<=end){
+    const ds=isoDate(cur);
+    const future=cur>today;
+    const dow=cur.getDay();
+    const cluster=findHolidayCluster(ds);
+    const hol=isHoliday(ds);
+    const weekendBoost=(dow===5)?1.28:(dow===6)?1.45:(dow===0)?1.12:(dow===4)?1.02:0.92;
+    const holidayBoost=cluster?1.55:(hol?1.30:1.0);
+    out[ds]={date:ds,dow,weekday:dow>=1&&dow<=4,weekend:dow===5||dow===6||dow===0,
+      holiday:!!hol,holidayLabel:holidayLabel(ds),
+      cluster:cluster?cluster.label:null,future,venues:{}};
+    for(const v of ["xiyue","jiati"]){
+      const base=VENUE_BASE[v];
+      const trendMul=1+trend[v]*dayIdx;
+      const season=seasonal[cur.getMonth()];
+      const noise=0.85+rng()*0.30;
+      const dayTotal=base*trendMul*season*weekendBoost*holidayBoost*noise;
+      const mix=VENUE_MIX[v];
+      const cats={};let normalize=0;
+      for(const c of CATEGORIES){const wob=0.85+rng()*0.30;cats[c]=mix[c]*wob;normalize+=cats[c];}
+      const result={};let acc=0;
+      for(const c of CATEGORIES){const v2=Math.round((cats[c]/normalize)*dayTotal);result[c]=v2;acc+=v2;}
+      const adrRest=v==='xiyue'?1180:950;
+      const adrStay=v==='xiyue'?3100:2900;
+      const restCount=Math.max(0,Math.min(VENUE_ROOMS[v]*2,Math.round(result["休息"]/adrRest)));
+      const stayCount=Math.max(0,Math.min(VENUE_ROOMS[v],Math.round(result["住宿"]/adrStay)));
+      const hourly=generateHourlyShape(v,dow,!!hol||!!cluster,rng);
+      const checkins=generateCheckinDistribution(v,dow,!!hol||!!cluster,restCount,stayCount,rng);
+      out[ds].venues[v]=future?null:{categories:result,total:acc,rooms:{rest:restCount,stay:stayCount,total:VENUE_ROOMS[v]},hourly,checkins};
+    }
+    cur.setDate(cur.getDate()+1);dayIdx++;
+  }
+  return out;
+}
+
+// -------- API → internal format 轉換 --------
+function mergeApiData(apiRows, baseDailyData){
+  const merged={...baseDailyData};
+  const byDate={};
+  for(const row of apiRows){
+    const d=typeof row.date==='string'?row.date:isoDate(new Date(row.date));
+    if(!byDate[d])byDate[d]={};
+    byDate[d][row.venue]=row;
+  }
+  for(const [date,venues] of Object.entries(byDate)){
+    if(!merged[date]){
+      const d=new Date(date);const dow=d.getDay();
+      merged[date]={date,dow,weekday:dow>=1&&dow<=4,
+        weekend:dow===5||dow===6||dow===0,
+        holiday:!!HOLIDAYS[date],holidayLabel:HOLIDAYS[date]||null,
+        cluster:findHolidayCluster(date)?.label||null,future:false,venues:{}};
+    }
+    merged[date].future=false;
+    for(const [venue,row] of Object.entries(venues)){
+      const categories={
+        "休息":Number(row.rest_revenue)||0,"住宿":Number(row.stay_revenue)||0,
+        "加休":Number(row.addrest_revenue)||0,"加人頭/床":Number(row.addperson_revenue)||0,
+        "餐飲":Number(row.fnb_revenue)||0,"其他":Number(row.other_revenue)||0
+      };
+      const total=Object.values(categories).reduce((a,b)=>a+b,0);
+      const rooms={rest:Number(row.rest_count)||0,stay:Number(row.stay_count)||0,
+        total:venue==='xiyue'?32:26};
+      const dow=merged[date].dow;
+      const hol=!!HOLIDAYS[date];
+      const seed=(date+venue).split('').reduce((a,b)=>a+b.charCodeAt(0),0);
+      const hourly=generateHourlyShape(venue,dow,hol,mulberry32(seed));
+      const checkins=generateCheckinDistribution(venue,dow,hol,rooms.rest,rooms.stay,mulberry32(seed+1));
+      merged[date].venues[venue]={categories,total,rooms,hourly,checkins};
+    }
+  }
+  return merged;
+}
+
+// -------- 格式化工具 --------
+function nf(n){if(n==null||isNaN(n))return"—";return new Intl.NumberFormat("zh-TW").format(Math.round(n));}
+function nfShort(n){
+  if(n==null||isNaN(n))return"—";const abs=Math.abs(n);
+  if(abs>=1e8)return(n/1e8).toFixed(2)+" 億";
+  if(abs>=1e7)return(n/1e7).toFixed(2)+" 千萬";
+  if(abs>=1e6)return(n/1e6).toFixed(1)+"M";
+  if(abs>=1e4)return(n/1e4).toFixed(1)+" 萬";
+  return nf(n);
+}
+function nfPct(n,d=1){if(n==null||isNaN(n))return"—";return(n*100).toFixed(d)+"%";}
+function nfSigned(n){const s=n>=0?"+":" −";return s+nfShort(Math.abs(n));}
+
+// =====================================================================
+// 圖表元件
+// =====================================================================
+const CAT_COLORS={"休息":"#EFE54F","住宿":"#585755","加休":"#C9A86A","加人頭/床":"#D6233B","餐飲":"#8A8985","其他":"#C9C7C2"};
+const VENUE_COLORS={xiyue:{primary:"#C9A86A",soft:"#EFE7D5",deep:"#A88847",label:"璽悅一館"},jiati:{primary:"#D6233B",soft:"#F8DDE2",deep:"#A8132B",label:"佳緹二館"},combined:{primary:"#1C1B19",soft:"#EFEDE8",deep:"#3B3A38",label:"兩館合計"}};
+
+function niceTicks(maxVal,count=5){
+  if(!maxVal||maxVal<=0)return[0,1,2,3,4,5];
+  const rough=maxVal/count,mag=Math.pow(10,Math.floor(Math.log10(rough)));
+  const norm=rough/mag;
+  const step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+  const top=Math.ceil(maxVal/step)*step;
+  const out=[];for(let v=0;v<=top+1e-6;v+=step)out.push(Math.round(v));
+  return out;
+}
+
+function StackedBarTrend({rows,height=260,onBarClick,highlightHolidays=true,dimension="day",venueKey="combined",forecast=null,kpi=null}){
+  const wrapRef=useRef(null);const[w,setW]=useState(900);
+  useEffect(()=>{if(!wrapRef.current)return;const ro=new ResizeObserver(es=>{for(const e of es)setW(Math.floor(e.contentRect.width));});ro.observe(wrapRef.current);return()=>ro.disconnect();},[]);
+  const padL=56,padR=18,padT=18,padB=38;
+  const innerW=Math.max(50,w-padL-padR),innerH=height-padT-padB;
+  const n=rows.length||1;const barW=Math.max(2,(innerW/n)*0.78);const xStep=innerW/n;
+  const maxVal=Math.max(1,...rows.map(r=>r.total||0),kpi||0);
+  const ticks=niceTicks(maxVal,4);const yMax=ticks[ticks.length-1];
+  const yFor=v=>padT+innerH-(v/yMax)*innerH;const xFor=i=>padL+i*xStep+xStep/2;
+  const bands=[];
+  rows.forEach((r,i)=>{const tag=r.cluster?"cluster":(r.weekend?"weekend":null);if(!tag)return;const last=bands[bands.length-1];if(last&&last.tag===tag&&last.end===i-1)last.end=i;else bands.push({start:i,end:i,tag,label:r.cluster});});
+  const[hover,setHover]=useState(null);
+  return(
+    <div ref={wrapRef} className="chart-wrap" style={{position:"relative"}}>
+      <svg width={w} height={height} style={{display:"block",overflow:"visible"}}>
+        {ticks.map((t,i)=>(
+          <g key={"t"+i}>
+            <line x1={padL} x2={padL+innerW} y1={yFor(t)} y2={yFor(t)} stroke="rgba(88,87,85,0.10)" strokeDasharray={i===0?"0":"3 4"}/>
+            <text x={padL-8} y={yFor(t)} fontSize="10" fill="#8A8985" textAnchor="end" dominantBaseline="middle" fontFamily="JetBrains Mono,monospace">{nfShort(t)}</text>
+          </g>
+        ))}
+        {highlightHolidays&&bands.map((b,i)=>{const x=padL+b.start*xStep;const wB=(b.end-b.start+1)*xStep;const fill=b.tag==="cluster"?"rgba(214,35,59,0.06)":"rgba(239,229,79,0.18)";return<rect key={"b"+i} x={x} y={padT} width={wB} height={innerH} fill={fill}/>;})}
+        {kpi!=null&&dimension==="day"&&(
+          <g>
+            <line x1={padL} x2={padL+innerW} y1={yFor(kpi)} y2={yFor(kpi)} stroke="#585755" strokeDasharray="6 4" strokeWidth="1"/>
+            <text x={padL+innerW+4} y={yFor(kpi)} fontSize="10" fill="#585755" dominantBaseline="middle" fontFamily="JetBrains Mono,monospace">日均目標 {nfShort(kpi)}</text>
+          </g>
+        )}
+        {rows.map((r,i)=>{
+          if(!r.total)return null;let yAcc=padT+innerH;
+          return(
+            <g key={"bar"+i} transform={`translate(${xFor(i)-barW/2},0)`}
+               onMouseEnter={()=>setHover({i,x:xFor(i),y:yFor(r.total),row:r})}
+               onMouseLeave={()=>setHover(null)}
+               onClick={()=>onBarClick&&onBarClick(r)}
+               style={{cursor:"pointer"}}>
+              {CATEGORIES.map((c,j)=>{const v=r.cats[c];if(!v)return null;const h=(v/yMax)*innerH;yAcc-=h;return<rect key={c} x={0} y={yAcc} width={barW} height={Math.max(0.5,h)} fill={CAT_COLORS[c]} opacity={r.future?0.35:1} stroke={r.future?"#585755":"none"} strokeDasharray={r.future?"2 2":"0"}/>;})}
+              {hover&&hover.i===i&&<rect x={-2} y={yFor(r.total)-2} width={barW+4} height={innerH-(yFor(r.total)-padT)+4} fill="none" stroke="#1C1B19" strokeWidth="1" rx="2"/>}
+            </g>
+          );
+        })}
+        {forecast&&forecast.points&&(
+          <g>
+            <path d={"M "+forecast.points.map(p=>`${xFor(p.i)} ${yFor(p.v)}`).join(" L ")} fill="none" stroke="#3B3A38" strokeWidth="1.5" strokeDasharray="4 3"/>
+            {forecast.points.map((p,i)=><circle key={i} cx={xFor(p.i)} cy={yFor(p.v)} r="2.5" fill="#FBF9F2" stroke="#3B3A38" strokeWidth="1"/>)}
+          </g>
+        )}
+        {rows.map((r,i)=>{const labelEvery=dimension==="day"?Math.max(1,Math.ceil(n/10)):1;if(i%labelEvery!==0&&i!==n-1)return null;return<text key={"x"+i} x={xFor(i)} y={padT+innerH+18} fontSize="10" fill="#8A8985" textAnchor="middle" fontFamily="JetBrains Mono,monospace">{r.label}</text>;})}
+        {dimension==="day"&&rows.map((r,i)=><text key={"dow"+i} x={xFor(i)} y={padT+innerH+30} fontSize="9" fill={r.weekend?"#D6233B":"#C9C7C2"} textAnchor="middle" fontFamily="JetBrains Mono,monospace">{["日","一","二","三","四","五","六"][r.dow]}</text>)}
+      </svg>
+      {hover&&<ChartTooltip x={hover.x} y={hover.y} row={hover.row}/>}
+    </div>
+  );
+}
+
+function ChartTooltip({x,y,row}){
+  const W=220;
+  return(
+    <div style={{position:"absolute",left:Math.max(0,Math.min(x-W/2,(window.innerWidth||1200)-W-20)),top:Math.max(0,y-8-140),width:W,background:"var(--hm-paper)",border:"1px solid var(--hm-gray-soft)",borderRadius:10,boxShadow:"var(--shadow-md)",padding:"10px 12px",pointerEvents:"none",fontSize:12,zIndex:30}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+        <span style={{fontWeight:600,color:"#1C1B19"}}>{row.label}</span>
+        <span style={{fontFamily:"var(--font-mono)",fontWeight:700,color:"#1C1B19"}}>{nfShort(row.total)}</span>
+      </div>
+      {row.cluster&&<div style={{fontSize:10,color:"#D6233B",marginBottom:6,letterSpacing:"0.04em"}}>● {row.cluster}</div>}
+      {row.weekend&&!row.cluster&&<div style={{fontSize:10,color:"#A88847",marginBottom:6,letterSpacing:"0.04em"}}>● 週末</div>}
+      {CATEGORIES.map(c=>{const v=row.cats[c]||0;const pct=row.total?(v/row.total):0;return(
+        <div key={c} style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+          <span style={{width:8,height:8,background:CAT_COLORS[c],borderRadius:2}}/>
+          <span style={{flex:1,color:"#3B3A38"}}>{c}</span>
+          <span style={{fontFamily:"var(--font-mono)",color:"#585755"}}>{nfShort(v)}</span>
+          <span style={{fontFamily:"var(--font-mono)",color:"#8A8985",width:36,textAlign:"right"}}>{nfPct(pct,0)}</span>
+        </div>
+      );})}
+      {row.rooms&&<div style={{marginTop:6,paddingTop:6,borderTop:"1px dashed var(--hm-gray-soft)",display:"flex",gap:10,fontFamily:"var(--font-mono)",color:"#585755",fontSize:11}}><span>休 {row.rooms.rest}</span><span>住 {row.rooms.stay}</span></div>}
+    </div>
+  );
+}
+
+function HourHeatmap({days,height=220,mode="rooms",onModeChange}){
+  const wrapRef=useRef(null);const[w,setW]=useState(900);
+  useEffect(()=>{if(!wrapRef.current)return;const ro=new ResizeObserver(es=>{for(const e of es)setW(Math.floor(e.contentRect.width));});ro.observe(wrapRef.current);return()=>ro.disconnect();},[]);
+  const padL=36,padR=18,padT=14,padB=32;
+  const innerW=Math.max(50,w-padL-padR),innerH=height-padT-padB;
+  const cellW=innerW/24,cellH=innerH/Math.max(1,days.length);
+  let maxV=0;
+  for(const d of days)for(let h=0;h<24;h++){let val=mode==="checkin"?(d.checkins&&d.checkins[h])||0:((d.restRooms||0)+(d.stayRooms||0))*d.hourly[h];maxV=Math.max(maxV,val);}
+  const colorFor=v=>{if(!v)return"#FBF9F2";const t=Math.min(1,v/maxV);if(t<0.5){const p=t/0.5;return`rgba(239,229,79,${0.20+p*0.65})`;}else{const p=(t-0.5)/0.5;return`rgba(88,87,85,${0.55+p*0.35})`;}};
+  const[hov,setHov]=useState(null);
+  return(
+    <div ref={wrapRef} className="chart-wrap" style={{position:"relative"}}>
+      <svg width={w} height={height} style={{display:"block"}}>
+        {days.map((d,i)=>(
+          <g key={d.date} transform={`translate(${padL},${padT+i*cellH})`}>
+            <text x={-6} y={cellH/2} fontSize="9" fill="#8A8985" textAnchor="end" dominantBaseline="middle" fontFamily="JetBrains Mono,monospace">{d.label}</text>
+            {Array.from({length:24},(_,h)=>{let v=mode==="checkin"?(d.checkins&&d.checkins[h])||0:((d.restRooms||0)+(d.stayRooms||0))*d.hourly[h];return(<rect key={h} x={h*cellW} y={1} width={Math.max(0.5,cellW-1)} height={Math.max(0.5,cellH-1)} fill={colorFor(v)} onMouseEnter={()=>setHov({d,h,v,x:padL+h*cellW+cellW/2,y:padT+i*cellH,mode})} onMouseLeave={()=>setHov(null)} style={{cursor:"crosshair"}}/>);})}
+          </g>
+        ))}
+        {[0,3,6,9,12,15,18,21].map(h=><text key={h} x={padL+h*cellW+cellW/2} y={padT+days.length*cellH+14} fontSize="9" fill="#8A8985" textAnchor="middle" fontFamily="JetBrains Mono,monospace">{String(h).padStart(2,"0")}</text>)}
+        <text x={padL+24*cellW} y={padT+days.length*cellH+14} fontSize="9" fill="#8A8985" textAnchor="end" fontFamily="JetBrains Mono,monospace">時 / hour</text>
+      </svg>
+      {hov&&<div style={{position:"absolute",left:Math.min(hov.x+8,w-140),top:hov.y,background:"#1C1B19",color:"#FBF9F2",padding:"6px 8px",borderRadius:6,fontSize:11,pointerEvents:"none",whiteSpace:"nowrap",zIndex:30}}><div style={{fontFamily:"var(--font-mono)"}}>{hov.d.label} · {String(hov.h).padStart(2,"0")}:00</div><div style={{fontFamily:"var(--font-mono)",color:"#EFE54F"}}>{hov.mode==="checkin"?`${Math.round(hov.v)} 組`:`${Math.round(hov.v)} 間`}</div></div>}
+      {onModeChange&&<div style={{position:"absolute",top:8,right:8,display:"flex",gap:4,zIndex:10}}><button className="heat-mode-btn" data-active={mode==="rooms"} onClick={()=>onModeChange("rooms")}>住宿+休息</button><button className="heat-mode-btn" data-active={mode==="checkin"} onClick={()=>onModeChange("checkin")}>Check-in</button></div>}
+    </div>
+  );
+}
+
+function CategoryDonut({cats,total,size=180,label="總營收"}){
+  const r=size/2-14,cx=size/2,cy=size/2;
+  let acc=0;
+  const arcs=CATEGORIES.map(c=>{const v=cats[c]||0;const frac=total?v/total:0;const start=acc;acc+=frac;const end=acc;return{c,v,frac,start,end};});
+  const arcPath=(s,e)=>{if(e-s<1e-6)return"";const a0=s*Math.PI*2-Math.PI/2;const a1=e*Math.PI*2-Math.PI/2;const large=(e-s)>0.5?1:0;const x0=cx+Math.cos(a0)*r,y0=cy+Math.sin(a0)*r;const x1=cx+Math.cos(a1)*r,y1=cy+Math.sin(a1)*r;const xi0=cx+Math.cos(a0)*(r-22),yi0=cy+Math.sin(a0)*(r-22);const xi1=cx+Math.cos(a1)*(r-22),yi1=cy+Math.sin(a1)*(r-22);return`M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} L ${xi1} ${yi1} A ${r-22} ${r-22} 0 ${large} 0 ${xi0} ${yi0} Z`;};
+  return(
+    <div style={{display:"flex",gap:16,alignItems:"center"}}>
+      <svg width={size} height={size}>{arcs.map(a=>a.frac>0&&<path key={a.c} d={arcPath(a.start,a.end)} fill={CAT_COLORS[a.c]}/>)}<text x={cx} y={cy-4} textAnchor="middle" fontSize="10" fill="#8A8985" letterSpacing="0.12em">{label}</text><text x={cx} y={cy+14} textAnchor="middle" fontSize="16" fill="#1C1B19" fontFamily="JetBrains Mono,monospace" fontWeight="700">{nfShort(total)}</text></svg>
+      <div style={{flex:1,display:"grid",gap:6}}>{arcs.map(a=>(<div key={a.c} style={{display:"flex",alignItems:"center",gap:8,fontSize:12}}><span style={{width:10,height:10,background:CAT_COLORS[a.c],borderRadius:2,flex:"0 0 auto"}}/><span style={{flex:1,color:"#3B3A38"}}>{a.c}</span><span style={{fontFamily:"var(--font-mono)",color:"#585755"}}>{nfShort(a.v)}</span><span style={{fontFamily:"var(--font-mono)",color:"#8A8985",width:38,textAlign:"right"}}>{nfPct(a.frac,0)}</span></div>))}</div>
+    </div>
+  );
+}
+
+function ForecastBar({actual,forecast,target,label="本月"}){
+  const max=Math.max(actual,forecast,target)*1.05;
+  const pctActual=(actual/max)*100,pctForecast=(forecast/max)*100,pctTarget=(target/max)*100;
+  const willHit=forecast>=target;
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,fontSize:11,color:"#8A8985",letterSpacing:"0.08em",textTransform:"uppercase"}}>
+        <span>{label}進度</span>
+        <span style={{fontFamily:"var(--font-mono)",color:willHit?"#4F8A5C":"#C0392B",fontWeight:700}}>預估達成 {nfPct(forecast/target,1)}</span>
+      </div>
+      <div style={{position:"relative",height:14,background:"#FBF9F2",borderRadius:999,overflow:"hidden"}}>
+        <div style={{position:"absolute",left:0,top:0,height:"100%",width:pctActual+"%",background:"var(--hm-gray)",transition:"width 600ms"}}/>
+        <div style={{position:"absolute",left:pctActual+"%",top:0,height:"100%",width:Math.max(0,pctForecast-pctActual)+"%",background:"repeating-linear-gradient(135deg,var(--hm-yellow) 0 6px,var(--hm-yellow-soft) 6px 12px)"}}/>
+        <div style={{position:"absolute",left:pctTarget+"%",top:-2,bottom:-2,width:2,background:"#1C1B19"}}/>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontFamily:"var(--font-mono)",fontSize:11,color:"#585755"}}>
+        <span><span style={{color:"#8A8985"}}>實際</span> {nfShort(actual)}</span>
+        <span><span style={{color:"#8A8985"}}>預估</span> {nfShort(forecast)}</span>
+        <span><span style={{color:"#8A8985"}}>目標</span> {nfShort(target)}</span>
+      </div>
+    </div>
+  );
+}
+
+function SparklineLite({values,kpi}){
+  const w=220,h=36;if(!values||!values.length)return null;
+  const max=Math.max(kpi||0,...values);const step=w/(values.length-1||1);
+  const path=values.map((v,i)=>`${i===0?"M":"L"} ${i*step} ${h-v/max*h}`).join(" ");
+  return(<svg width={w} height={h} style={{display:"block",width:"100%"}} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">{kpi&&<line x1={0} x2={w} y1={h-kpi/max*h} y2={h-kpi/max*h} stroke="#1C1B19" strokeDasharray="3 3" strokeWidth="1"/>}<path d={path} fill="none" stroke="#585755" strokeWidth="1.5"/>{values.map((v,i)=><circle key={i} cx={i*step} cy={h-v/max*h} r="1.5" fill="#EFE54F" stroke="#585755" strokeWidth="0.6"/>)}</svg>);
+}
+
+function YoYBars({thisYear,lastYear,thisLabel,lastLabel}){
+  const max=Math.max(thisYear,lastYear);
+  return(<div style={{display:"grid",gap:4,fontSize:10,fontFamily:"var(--font-mono)",color:"#585755"}}><div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{width:42,fontSize:9}}>{thisLabel}</span><div style={{flex:1,height:10,background:"#FBF9F2",borderRadius:999}}><div style={{width:thisYear/max*100+"%",height:"100%",background:"var(--hm-yellow)",borderRadius:999}}/></div></div><div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{width:42,fontSize:9}}>{lastLabel}</span><div style={{flex:1,height:10,background:"#FBF9F2",borderRadius:999}}><div style={{width:lastYear/max*100+"%",height:"100%",background:"var(--hm-gray-soft)",borderRadius:999}}/></div></div></div>);
+}
+
+function RoomsTwoBar({rest,stay,cap,restRev,stayRev}){
+  const occ=stay/cap;
+  return(<div style={{display:"grid",gap:8}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:10,color:"#585755",fontFamily:"var(--font-mono)"}}><div><div style={{color:"#8A8985",marginBottom:2}}>休息 {rest} 次</div><div style={{fontWeight:600}}>{nfShort(restRev)}</div></div><div style={{textAlign:"right"}}><div style={{color:"#8A8985",marginBottom:2}}>住宿 {stay} / {cap}</div><div style={{fontWeight:600}}>{nfShort(stayRev)}</div></div></div><div><div style={{fontSize:9,color:"#8A8985",marginBottom:4}}>住房率 OCC {nfPct(occ,0)}</div><div className="occ-viz">{Array.from({length:cap},(_,i)=><span key={i} className={"occ-cell "+(i<stay?"is-occ":"")}/>)}</div></div></div>);
+}
+
+function PerformanceMetrics({data}){
+  return(<div style={{display:"grid",gap:14}}><div className="perf-metric"><div className="perf-label">RevPAR<span className="perf-hint">每可售房收益・每日</span></div><div className="perf-value mono-tabular">{nfShort(data.revPAR)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.revPAR/3500*100)+"%",background:"var(--hm-gray)"}}/></div></div><div className="perf-metric"><div className="perf-label">ADR<span className="perf-hint">平均房價</span></div><div className="perf-value mono-tabular">{nfShort(data.adr)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.adr/4500*100)+"%",background:"var(--hm-gray)"}}/></div></div><div className="perf-metric"><div className="perf-label">住宿率<span className="perf-hint">住宿 / {data.roomCap}</span></div><div className="perf-value mono-tabular">{nfPct(data.stayRate,1)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.stayRate*100)+"%",background:"var(--hm-gray)"}}/></div></div><div className="perf-metric"><div className="perf-label">休息率<span className="perf-hint">休息 / {data.roomCap}</span></div><div className="perf-value mono-tabular">{nfPct(data.restRate,1)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.restRate/2*100)+"%",background:"var(--hm-yellow)"}}/></div></div><div className="perf-metric"><div className="perf-label">使用率<span className="perf-hint">(住宿+休息) / {data.roomCap}</span></div><div className="perf-value mono-tabular">{nfPct(data.utilization,1)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.utilization/2.5*100)+"%",background:"linear-gradient(90deg,var(--hm-yellow) 0%,var(--hm-gray) 100%)"}}/></div></div><div style={{fontSize:10,color:"#8A8985",paddingTop:6,borderTop:"1px dashed var(--hm-gray-soft)"}}>{data.period}・每日比率平均</div></div>);
+}
+
+function ForecastAlerts({alerts}){
+  return(<div style={{display:"grid",gap:10}}>{alerts.days.slice(0,7).map((a,i)=><div key={i} className="alert-row" data-status={a.status}><div className="alert-date">{a.label}</div><div className="alert-bar"><div style={{width:Math.min(100,a.forecast/a.target*100)+"%"}}/></div><div className="alert-val">{nfShort(a.forecast)}</div><div className="alert-status">{a.status==="ok"?"✓":a.status==="warn"?"⚠":"⚡"}</div></div>)}<div style={{fontSize:10,color:"#8A8985",paddingTop:8,borderTop:"1px dashed var(--hm-gray-soft)"}}>{alerts.summary}</div></div>);
+}
+
+// =====================================================================
+// 資料計算函式
+// =====================================================================
+function emptyCatRecord(){const o={};for(const c of CATEGORIES)o[c]=0;return o;}
+function emptyCats(){const o={total:0,rest:0,stay:0};for(const c of CATEGORIES)o[c]=0;return o;}
+function sumCats(cats){let s=0;for(const c of CATEGORIES)s+=cats[c]||0;return s;}
+function catsFor(d,view){const out=emptyCatRecord();if(!d)return out;if(view==="combined"){for(const v of["xiyue","jiati"]){if(!d.venues[v])continue;for(const c of CATEGORIES)out[c]+=d.venues[v].categories[c];}}else if(d.venues[view]){for(const c of CATEGORIES)out[c]=d.venues[view].categories[c];}return out;}
+function roomsFor(d,view){if(!d)return{rest:0,stay:0,total:0};if(view==="combined"){let rest=0,stay=0,total=0;for(const v of["xiyue","jiati"]){if(!d.venues[v])continue;rest+=d.venues[v].rooms.rest;stay+=d.venues[v].rooms.stay;total+=d.venues[v].rooms.total;}return{rest,stay,total};}return d.venues[view]?d.venues[view].rooms:{rest:0,stay:0,total:VENUE_ROOMS[view]};}
+function catsFromAgg(node,view){const out=emptyCatRecord();if(view==="combined"){for(const v of["xiyue","jiati"])for(const c of CATEGORIES)out[c]+=node.venues[v][c]||0;}else for(const c of CATEGORIES)out[c]=node.venues[view][c]||0;return out;}
+function roomsFromAgg(node,view){if(view==="combined")return{rest:(node.venues.xiyue.rest||0)+(node.venues.jiati.rest||0),stay:(node.venues.xiyue.stay||0)+(node.venues.jiati.stay||0)};return{rest:node.venues[view].rest||0,stay:node.venues[view].stay||0};}
+
+function aggregateMonthly(daily){
+  const months={};
+  for(const d of Object.values(daily)){
+    if(!d.venues.xiyue&&!d.venues.jiati)continue;
+    const key=d.date.slice(0,7);
+    if(!months[key])months[key]={date:key,venues:{xiyue:emptyCats(),jiati:emptyCats()},days:0,holidayDays:0,weekendDays:0};
+    months[key].days++;if(d.holiday||d.cluster)months[key].holidayDays++;if(d.weekend)months[key].weekendDays++;
+    for(const v of["xiyue","jiati"]){if(!d.venues[v])continue;for(const c of CATEGORIES)months[key].venues[v][c]+=d.venues[v].categories[c];months[key].venues[v].total=(months[key].venues[v].total||0)+d.venues[v].total;months[key].venues[v].rest=(months[key].venues[v].rest||0)+d.venues[v].rooms.rest;months[key].venues[v].stay=(months[key].venues[v].stay||0)+d.venues[v].rooms.stay;}
+  }
+  return months;
+}
+function aggregateYearly(daily){
+  const years={};
+  for(const d of Object.values(daily)){
+    if(!d.venues.xiyue&&!d.venues.jiati)continue;
+    const key=d.date.slice(0,4);
+    if(!years[key])years[key]={date:key,venues:{xiyue:emptyCats(),jiati:emptyCats()},days:0};
+    years[key].days++;
+    for(const v of["xiyue","jiati"]){if(!d.venues[v])continue;for(const c of CATEGORIES)years[key].venues[v][c]+=d.venues[v].categories[c];years[key].venues[v].total=(years[key].venues[v].total||0)+d.venues[v].total;years[key].venues[v].rest=(years[key].venues[v].rest||0)+d.venues[v].rooms.rest;years[key].venues[v].stay=(years[key].venues[v].stay||0)+d.venues[v].rooms.stay;}
+  }
+  return years;
+}
+
+function buildSeries(daily,dimension,view,customRange){
+  const allKeys=Object.keys(daily).sort();const todayStr=isoDate(new Date());
+  let rows=[],totalsByCat=emptyCatRecord(),totals={total:0};
+  if(dimension==="day"){
+    const N=30;let keys;
+    if(customRange){keys=allKeys.filter(k=>k>=customRange.start&&k<=customRange.end);}
+    else{const lastIdx=allKeys.indexOf(todayStr);const end=lastIdx>=0?lastIdx:allKeys.length-1;keys=allKeys.slice(Math.max(0,end-N+1),end+1);}
+    rows=keys.map(k=>{const d=daily[k];const cats=catsFor(d,view);const rooms=roomsFor(d,view);const total=sumCats(cats);for(const c of CATEGORIES)totalsByCat[c]+=cats[c];totals.total+=total;const m=k.slice(5,7),dd=k.slice(8,10);return{label:`${parseInt(m)}/${parseInt(dd)}`,date:k,dailyKey:k,dow:d.dow,weekend:d.weekend,holiday:d.holiday,cluster:d.cluster,holidayLabel:d.holidayLabel,future:d.future,cats,rooms,total};});
+    const past14=allKeys.filter(k=>k<todayStr).slice(-14);const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:0;
+    const monthKeys=allKeys.filter(k=>k.slice(0,7)===todayStr.slice(0,7));
+    const forecastPts=[];
+    monthKeys.forEach((k,i)=>{if(k<=todayStr)return;const d=daily[k];if(!d)return;const boost=(d.cluster?1.55:d.holiday?1.30:1)*(d.dow===6?1.45:d.dow===5?1.28:d.dow===0?1.12:1);const v=past14Avg*boost/1.15;const idx=rows.findIndex(r=>r.dailyKey===k);if(idx>=0)forecastPts.push({i:idx,v});});
+    return{rows,totalsByCat,totals,forecast:forecastPts.length?{points:forecastPts}:null};
+  } else if(dimension==="month"){
+    const months=aggregateMonthly(daily);const orderedM=Object.keys(months).sort();
+    const lastIdx=orderedM.findIndex(m=>m>todayStr.slice(0,7));const endIdx=lastIdx===-1?orderedM.length-1:lastIdx-1;
+    const sliced=orderedM.slice(Math.max(0,endIdx-11),endIdx+1);
+    rows=sliced.map(mk=>{const m=months[mk];const cats=catsFromAgg(m,view);const total=sumCats(cats);const rest=roomsFromAgg(m,view).rest,stay=roomsFromAgg(m,view).stay;for(const c of CATEGORIES)totalsByCat[c]+=cats[c];totals.total+=total;const dailyKeys=Object.keys(daily).filter(k=>k.startsWith(mk));return{label:mk.slice(2,4)+"/"+mk.slice(5,7),date:mk,dailyKeys,dow:0,weekend:false,holiday:m.holidayDays>0,cluster:m.holidayDays>=4?"含年節":null,cats,rooms:{rest,stay,total:VENUE_ROOMS.xiyue+VENUE_ROOMS.jiati},total};});
+    return{rows,totalsByCat,totals,forecast:null};
+  } else {
+    const years=aggregateYearly(daily);const orderedY=Object.keys(years).sort();
+    rows=orderedY.slice(-3).map(yk=>{const y=years[yk];const cats=catsFromAgg(y,view);const total=sumCats(cats);const rest=roomsFromAgg(y,view).rest,stay=roomsFromAgg(y,view).stay;for(const c of CATEGORIES)totalsByCat[c]+=cats[c];totals.total+=total;const dailyKeys=Object.keys(daily).filter(k=>k.startsWith(yk));return{label:yk,date:yk,dailyKeys,dow:0,weekend:false,holiday:false,cluster:null,cats,rooms:{rest,stay,total:VENUE_ROOMS.xiyue+VENUE_ROOMS.jiati},total};});
+    return{rows,totalsByCat,totals,forecast:null};
+  }
+}
+
+function buildMonthSnapshot(daily,view,target){
+  const todayStr=isoDate(new Date());const ym=todayStr.slice(0,7);
+  const allKeys=Object.keys(daily).sort();
+  const monthKeys=allKeys.filter(k=>k.slice(0,7)===ym);
+  const elapsed=monthKeys.filter(k=>k<=todayStr&&!daily[k].future);
+  let actual=0;const dailySeries=[];
+  for(const k of elapsed){const total=sumCats(catsFor(daily[k],view));actual+=total;dailySeries.push(total);}
+  const daysInMonth=new Date(parseInt(ym.slice(0,4)),parseInt(ym.slice(5,7)),0).getDate();
+  const daysElapsed=elapsed.length;const dailyAvg=daysElapsed?actual/daysElapsed:0;
+  const past14=allKeys.filter(k=>k<todayStr).slice(-14);
+  const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:dailyAvg;
+  let forecastRem=0;
+  for(const k of monthKeys){if(k<=todayStr)continue;const d=daily[k];if(!d)continue;const boost=(d.cluster?1.55:d.holiday?1.30:1)*(d.dow===6?1.45:d.dow===5?1.28:d.dow===0?1.12:1);forecastRem+=past14Avg*boost/1.15;}
+  const forecast=actual+forecastRem,completion=actual/target;
+  const yesterdayKey=elapsed[elapsed.length-1];const yd=yesterdayKey?daily[yesterdayKey]:null;
+  const yRooms=yd?roomsFor(yd,view):{rest:0,stay:0,total:view==="combined"?58:VENUE_ROOMS[view]};
+  const yCats=yd?catsFor(yd,view):emptyCatRecord();const yTotalRev=sumCats(yCats);
+  const monLabel=parseInt(ym.slice(5,7))+"月";
+  return{label:monLabel,actual,forecast,target,dailyAvg,daysInMonth,daysElapsed,completion,dailySeries,yesterday:{rest:yRooms.rest,stay:yRooms.stay,totalRooms:yRooms.total,restRev:yCats["休息"],stayRev:yCats["住宿"],totalRev:yTotalRev}};
+}
+
+function buildYoY(daily,view,mode="yoy"){
+  const allKeys=Object.keys(daily).sort();const todayStr=isoDate(new Date());
+  if(mode==="yoy"){
+    const past30=allKeys.filter(k=>k<=todayStr&&!daily[k].future).slice(-30);
+    let thisYear=0;for(const k of past30)thisYear+=sumCats(catsFor(daily[k],view));
+    const lastYearKeys=past30.map(k=>{const d=new Date(k);d.setFullYear(d.getFullYear()-1);return isoDate(d);}).filter(k=>daily[k]&&!daily[k].future);
+    let lastYear=0;for(const k of lastYearKeys)lastYear+=sumCats(catsFor(daily[k],view));
+    return{mode:"yoy",thisVal:thisYear,lastVal:lastYear,pct:lastYear?(thisYear-lastYear)/lastYear:0,thisLabel:"今年",lastLabel:"去年"};
+  } else if(mode==="mom"){
+    const thisMonth=todayStr.slice(0,7);
+    const lastMonthDate=new Date(thisMonth+"-01");lastMonthDate.setMonth(lastMonthDate.getMonth()-1);
+    const lastMonth=isoDate(lastMonthDate).slice(0,7);
+    const thisMonthKeys=allKeys.filter(k=>k.slice(0,7)===thisMonth&&k<=todayStr&&!daily[k].future);
+    const lastMonthKeys=allKeys.filter(k=>k.slice(0,7)===lastMonth&&!daily[k].future).slice(0,thisMonthKeys.length);
+    let thisVal=0,lastVal=0;
+    for(const k of thisMonthKeys)thisVal+=sumCats(catsFor(daily[k],view));
+    for(const k of lastMonthKeys)lastVal+=sumCats(catsFor(daily[k],view));
+    return{mode:"mom",thisVal,lastVal,pct:lastVal?(thisVal-lastVal)/lastVal:0,thisLabel:"本月",lastLabel:"上月"};
+  } else {
+    const recentCluster=HOLIDAY_CLUSTERS.filter(c=>c.end<=todayStr).slice(-1)[0];
+    if(!recentCluster)return{mode:"holiday",thisVal:0,lastVal:0,pct:0,thisLabel:"今年",lastLabel:"去年"};
+    const thisKeys=allKeys.filter(k=>k>=recentCluster.start&&k<=recentCluster.end&&!daily[k].future);
+    const lastYearStart=new Date(recentCluster.start);lastYearStart.setFullYear(lastYearStart.getFullYear()-1);
+    const lastYearEnd=new Date(recentCluster.end);lastYearEnd.setFullYear(lastYearEnd.getFullYear()-1);
+    const lastKeys=allKeys.filter(k=>k>=isoDate(lastYearStart)&&k<=isoDate(lastYearEnd)&&!daily[k].future);
+    let thisVal=0,lastVal=0;
+    for(const k of thisKeys)thisVal+=sumCats(catsFor(daily[k],view));
+    for(const k of lastKeys)lastVal+=sumCats(catsFor(daily[k],view));
+    return{mode:"holiday",thisVal,lastVal,pct:lastVal?(thisVal-lastVal)/lastVal:0,thisLabel:recentCluster.label,lastLabel:"去年同期"};
+  }
+}
+
+function buildPerformanceMetrics(daily,view,dimension){
+  const allKeys=Object.keys(daily).sort();const todayStr=isoDate(new Date());
+  const window=allKeys.filter(k=>k<=todayStr&&!daily[k].future).slice(-30);
+  let totalRev=0,totalOccupied=0,sumStayRate=0,sumRestRate=0,sumUtil=0;
+  const roomCap=TOTAL_ROOMS[view]||(VENUE_ROOMS.xiyue+VENUE_ROOMS.jiati);
+  for(const k of window){const d=daily[k];if(!d)continue;const rev=sumCats(catsFor(d,view));const rooms=roomsFor(d,view);totalRev+=rev;totalOccupied+=rooms.stay;sumStayRate+=rooms.stay/roomCap;sumRestRate+=rooms.rest/roomCap;sumUtil+=(rooms.stay+rooms.rest)/roomCap;}
+  const days=window.length||1;
+  return{revPAR:totalRev/(roomCap*days),adr:totalOccupied>0?totalRev/totalOccupied:0,stayRate:sumStayRate/days,restRate:sumRestRate/days,utilization:sumUtil/days,period:"近 30 日",roomCap};
+}
+
+function buildHeatmap(daily,view){
+  const allKeys=Object.keys(daily).sort();const todayStr=isoDate(new Date());
+  const past14=allKeys.filter(k=>k<=todayStr&&!daily[k].future).slice(-14);
+  return past14.map(k=>{
+    const d=daily[k];if(!d)return null;
+    const total=sumCats(catsFor(d,view));const rooms=roomsFor(d,view);
+    let hourly=new Array(24).fill(0),checkins=new Array(24).fill(0);
+    if(view==="combined"){for(const v of["xiyue","jiati"]){if(!d.venues[v])continue;const t=d.venues[v].total;for(let h=0;h<24;h++){hourly[h]+=d.venues[v].hourly[h]*t;checkins[h]+=d.venues[v].checkins[h];}}const s=hourly.reduce((a,b)=>a+b,0);if(s)hourly=hourly.map(x=>x/s);}
+    else{hourly=d.venues[view]?d.venues[view].hourly:hourly;checkins=d.venues[view]?d.venues[view].checkins:checkins;}
+    return{date:k,label:`${parseInt(k.slice(5,7))}/${parseInt(k.slice(8,10))} ${["日","一","二","三","四","五","六"][d.dow]}`,dow:d.dow,total,hourly,restRooms:rooms.rest,stayRooms:rooms.stay,checkins};
+  }).filter(Boolean);
+}
+
+function buildForecastAlerts(daily,view,monthlyTarget){
+  const allKeys=Object.keys(daily).sort();const todayStr=isoDate(new Date());
+  const todayIdx=allKeys.indexOf(todayStr);const startIdx=todayIdx>=0?todayIdx+1:allKeys.length-1;
+  const future7Keys=allKeys.slice(startIdx,startIdx+7);const dailyTarget=monthlyTarget/30;
+  const past14=allKeys.filter(k=>k<=todayStr&&!daily[k].future).slice(-14);
+  const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:dailyTarget;
+  const days=future7Keys.map(k=>{const d=daily[k];if(!d)return null;const boost=(d.cluster?1.55:d.holiday?1.30:1)*(d.dow===6?1.45:d.dow===5?1.28:d.dow===0?1.12:d.dow===4?1.02:0.92);const forecast=past14Avg*boost/1.15;const pct=forecast/dailyTarget;const status=pct>=1?"ok":pct>=0.85?"warn":"alert";const m=k.slice(5,7),dd=k.slice(8,10);return{date:k,label:`${parseInt(m)}/${parseInt(dd)} ${["日","一","二","三","四","五","六"][d.dow]}`,forecast,target:dailyTarget,status};}).filter(Boolean);
+  const lowDays=days.filter(d=>d.status==="alert").length;
+  return{days,summary:lowDays>0?`⚠️ ${lowDays} 天預估低於目標 85%`:"✓ 未來一週預估正常"};
+}
+
+// =====================================================================
+// UI 元件
+// =====================================================================
+const DIMENSIONS=[{id:"day",label:"每日",desc:"最近 30 日"},{id:"month",label:"每月",desc:"最近 12 個月"},{id:"year",label:"每年",desc:"近 3 年"}];
+const VIEWS=[{id:"combined",label:"兩館合計"},{id:"xiyue",label:"璽悅一館"},{id:"jiati",label:"佳緹二館"}];
+
+function Header({dimension,setDimension,view,setView,customRange,setCustomRange,isDemo,isLive}){
+  const[showRange,setShowRange]=useState(false);
+  return(
+    <header className="hdr">
+      <div className="hdr-left">
+        <div className="brand">
+          <div style={{width:36,height:36,background:"var(--hm-yellow)",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"var(--hm-gray-deep)",letterSpacing:"-0.05em",fontFamily:"var(--font-display)"}}>H</div>
+          <div className="brand-text">
+            <span className="wordmark brand-name">H MOTEL</span>
+            <span className="brand-sub">
+              {isLive&&<span className="live-dot" style={{marginRight:4}}/>}
+              {isDemo?"演示模式 / Demo":"營收儀錶板 / Revenue Dashboard"}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="hdr-mid">
+        <div className="seg">
+          {DIMENSIONS.map(d=><button key={d.id} className={"seg-btn"+(d.id===dimension?" is-active":"")} onClick={()=>setDimension(d.id)}>{d.label}<small>{d.desc}</small></button>)}
+        </div>
+      </div>
+      <div className="hdr-right" style={{position:"relative"}}>
+        <div className="view-tabs">
+          {VIEWS.map(v=><button key={v.id} className={"view-tab"+(v.id===view?" is-active":"")} onClick={()=>setView(v.id)}><span className={"dot dot-"+v.id}/>{v.label}</button>)}
+        </div>
+        <button className="btn-ghost-sm" onClick={()=>setShowRange(!showRange)}>
+          📅 {customRange?`${customRange.start} → ${customRange.end}`:"預設區間"}
+        </button>
+        {showRange&&<RangePicker current={customRange} onApply={r=>{setCustomRange(r);setShowRange(false);}} onClose={()=>setShowRange(false)}/>}
+      </div>
+    </header>
+  );
+}
+
+function RangePicker({current,onApply,onClose}){
+  const today=isoDate(new Date());
+  const[start,setStart]=useState(current?.start||isoDate(new Date(Date.now()-30*86400000)));
+  const[end,setEnd]=useState(current?.end||today);
+  return(<div className="range-pop"><label>起 <input type="date" value={start} onChange={e=>setStart(e.target.value)}/></label><label>迄 <input type="date" value={end} onChange={e=>setEnd(e.target.value)}/></label><button className="btn-primary-sm" onClick={()=>onApply({start,end})}>套用</button><button className="btn-ghost-sm" onClick={()=>{onApply(null);onClose();}}>清除</button></div>);
+}
+
+function KpiCard({eyebrow,big,tag,tagColor,sub,children}){
+  return(<div className="kpi-card"><div className="kpi-head"><span className="eyebrow">{eyebrow}</span>{tag&&<span className={"kpi-tag tag-"+tagColor}>{tag}</span>}</div><div className="kpi-big mono-tabular">{big}</div>{sub&&<div className="kpi-sub">{sub}</div>}<div className="kpi-extra">{children}</div></div>);
+}
+
+function DrillDown({row,onClose,dimension,venueKey,daily}){
+  const venuesBreak=useMemo(()=>{
+    if(row.dailyKey){const d=daily[row.dailyKey];if(!d)return null;return["xiyue","jiati"].map(v=>({v,name:VENUE_COLORS[v].label,cats:d.venues[v]?d.venues[v].categories:null,total:d.venues[v]?.total,rooms:d.venues[v]?.rooms}));}
+    else if(row.dailyKeys){const out=["xiyue","jiati"].map(v=>{const cats=emptyCatRecord();let total=0,rest=0,stay=0;for(const k of row.dailyKeys){const dv=daily[k]?.venues[v];if(!dv)continue;for(const c of CATEGORIES)cats[c]+=dv.categories[c];total+=dv.total;rest+=dv.rooms.rest;stay+=dv.rooms.stay;}return{v,name:VENUE_COLORS[v].label,cats,total,rooms:{rest,stay,total:VENUE_ROOMS[v]}};});return out;}
+    return null;
+  },[row,daily]);
+  return(<div className="drill-overlay" onClick={onClose}><div className="drill-panel" onClick={e=>e.stopPropagation()}><div className="drill-head"><div><div className="eyebrow">細項分析</div><h3 style={{margin:0}}>{row.label}</h3><div className="text-xs muted" style={{marginTop:4}}>{row.cluster?`🏮 ${row.cluster}・`:""}{row.holidayLabel?`${row.holidayLabel}・`:""}{row.weekend?"週末":dimension==="day"?"平日":""}・總營收 {nfShort(row.total)}</div></div><button className="btn-ghost-sm" onClick={onClose}>✕ 關閉</button></div><div className="drill-grid">{venuesBreak&&venuesBreak.map(vb=><div key={vb.v} className="drill-venue"><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}><span style={{fontWeight:600}}><span className={"dot dot-"+vb.v}/> {vb.name}</span><span className="mono-tabular" style={{fontSize:18,fontWeight:700}}>{nfShort(vb.total)}</span></div>{vb.cats&&<div className="drill-cats">{CATEGORIES.map(c=>{const v=vb.cats[c]||0;const pct=vb.total?v/vb.total:0;return(<div key={c} className="drill-cat-row"><span style={{display:"inline-flex",alignItems:"center",gap:6,width:60}}><i style={{width:8,height:8,background:CAT_COLORS[c],borderRadius:2}}/>{c}</span><div className="drill-cat-bar"><div style={{width:pct*100+"%",background:CAT_COLORS[c]}}/></div><span className="mono-tabular" style={{width:70,textAlign:"right",fontSize:12,color:"#585755"}}>{nfShort(v)}</span><span className="mono-tabular" style={{width:42,textAlign:"right",fontSize:11,color:"#8A8985"}}>{nfPct(pct,0)}</span></div>);})}</div>}{vb.rooms&&<div style={{marginTop:10,paddingTop:10,borderTop:"1px dashed var(--hm-gray-soft)",display:"flex",gap:18,fontFamily:"var(--font-mono)",fontSize:12,color:"#3B3A38"}}><span>休息 <strong>{vb.rooms.rest}</strong> 次</span><span>住宿 <strong>{vb.rooms.stay}</strong> / {vb.rooms.total} 間</span><span style={{color:"#8A8985"}}>OCC {nfPct(vb.rooms.stay/vb.rooms.total,0)}</span></div>}</div>)}</div></div></div>);
+}
+
+// =====================================================================
+// 主應用程式
+// =====================================================================
+function App(){
+  const[daily,setDaily]=useState(null);
+  const[isDemo,setIsDemo]=useState(false);
+  const[isLive,setIsLive]=useState(false);
+  const[loading,setLoading]=useState(true);
+  const[loadError,setLoadError]=useState(null);
+  const[monthlyTarget,setMonthlyTarget]=useState(HMOTEL_CONFIG.MONTHLY_TARGET);
+  const[lastUpdated,setLastUpdated]=useState(null);
+  const[dimension,setDimension]=useState("day");
+  const[view,setView]=useState("combined");
+  const[drillRow,setDrillRow]=useState(null);
+  const[customRange,setCustomRange]=useState(null);
+  const[yoyMode,setYoyMode]=useState("yoy");
+  const[heatMode,setHeatMode]=useState("rooms");
+  const[density,setDensity]=useState("comfortable");
+
+  const loadData=useCallback(async()=>{
+    setLoading(true);setLoadError(null);
+    const base=generateDaily(42);
+    const apiUrl=HMOTEL_CONFIG.API_URL;
+    if(!apiUrl||apiUrl.trim()===''){setDaily(base);setIsDemo(true);setIsLive(false);setLoading(false);return;}
+    try{
+      const res=await fetch(apiUrl+'?t='+Date.now());
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const json=await res.json();
+      if(json.status!=='ok')throw new Error(json.error||'API error');
+      const merged=mergeApiData(json.rows||[],base);
+      setMonthlyTarget(json.settings?.monthly_target||HMOTEL_CONFIG.MONTHLY_TARGET);
+      setDaily(merged);setIsDemo(false);setIsLive(true);
+      setLastUpdated(new Date().toLocaleString('zh-TW'));
+    }catch(e){
+      console.warn('API 載入失敗，使用演示資料:',e);
+      setLoadError(e.message);setDaily(base);setIsDemo(true);setIsLive(false);
+    }
+    setLoading(false);
+  },[]);
+
+  useEffect(()=>{loadData();},[loadData]);
+
+  const series=useMemo(()=>daily?buildSeries(daily,dimension,view,customRange):null,[daily,dimension,view,customRange]);
+  const monthSnap=useMemo(()=>daily?buildMonthSnapshot(daily,view,monthlyTarget):null,[daily,view,monthlyTarget]);
+  const yoy=useMemo(()=>daily?buildYoY(daily,view,yoyMode):null,[daily,view,yoyMode]);
+  const performanceMetrics=useMemo(()=>daily?buildPerformanceMetrics(daily,view,dimension):null,[daily,view,dimension]);
+  const heatmapData=useMemo(()=>daily?buildHeatmap(daily,view):null,[daily,view]);
+  const forecastAlerts=useMemo(()=>daily?buildForecastAlerts(daily,view,monthlyTarget):null,[daily,view,monthlyTarget]);
+  const isDense=density==="compact";
+
+  if(loading){
+    return(<div className="loading-screen"><div className="spinner"/><div style={{fontSize:14,color:"var(--hm-gray-mid)"}}>載入儀錶板資料...</div></div>);
+  }
+  if(!daily||!series||!monthSnap)return null;
+
+  return(
+    <div className={"app "+(isDense?"is-dense":"")}>
+      <Header dimension={dimension} setDimension={setDimension} view={view} setView={setView} customRange={customRange} setCustomRange={setCustomRange} isDemo={isDemo} isLive={isLive}/>
+
+      {isDemo&&(
+        <div className="demo-banner">
+          <span>🎭 <strong>演示模式</strong>｜目前顯示的是示範資料。請在 index.html 頂端的 CONFIG 區塊填入你的 Google Apps Script URL，即可顯示真實業績。</span>
+          {lastUpdated&&<span style={{fontSize:12,color:"var(--hm-gray-mid)"}}>上次更新：{lastUpdated}</span>}
+          <button className="btn-ghost-sm" onClick={loadData}>↻ 重新載入</button>
+        </div>
+      )}
+      {isLive&&lastUpdated&&(
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8,fontSize:11,color:"var(--hm-gray-mid)"}}>
+          <span className="live-dot" style={{marginRight:6}}/> 即時資料・更新於 {lastUpdated}
+          <button className="btn-ghost-sm" onClick={loadData} style={{marginLeft:8}}>↻ 重新整理</button>
+        </div>
+      )}
+
+      {/* KPI Strip */}
+      <section className="kpi-strip">
+        <KpiCard eyebrow={monthSnap.label+"・實際 + 預估"} big={nfShort(monthSnap.forecast)} tag={monthSnap.forecast>=monthSnap.target?"達標":"未達標"} tagColor={monthSnap.forecast>=monthSnap.target?"ok":"warn"} sub={`目標 ${nfShort(monthSnap.target)}・差 ${nfSigned(monthSnap.forecast-monthSnap.target)}`}><ForecastBar actual={monthSnap.actual} forecast={monthSnap.forecast} target={monthSnap.target} label={monthSnap.label}/></KpiCard>
+        <KpiCard eyebrow="本月日均營收" big={nfShort(monthSnap.dailyAvg)} sub={`已過 ${monthSnap.daysElapsed} / ${monthSnap.daysInMonth} 天`} tag={`${nfPct(monthSnap.completion,0)} 進度`} tagColor="neutral"><SparklineLite values={monthSnap.dailySeries} kpi={monthlyTarget/30}/></KpiCard>
+        <KpiCard eyebrow={yoy.mode==="yoy"?"同期比 (YoY)":yoy.mode==="mom"?"月對月 (MoM)":"節慶對比"} big={nfPct(yoy.pct,1)} tag={yoy.pct>=0?"上升":"下降"} tagColor={yoy.pct>=0?"ok":"warn"} sub={`${yoy.thisLabel} ${nfShort(yoy.thisVal)}・${yoy.lastLabel} ${nfShort(yoy.lastVal)}`}>
+          <YoYBars thisYear={yoy.thisVal} lastYear={yoy.lastVal} thisLabel={yoy.thisLabel} lastLabel={yoy.lastLabel}/>
+          <div style={{display:"flex",gap:4,marginTop:6}}>
+            <button className="tiny-toggle" onClick={()=>setYoyMode("yoy")} data-active={yoyMode==="yoy"}>年對年</button>
+            <button className="tiny-toggle" onClick={()=>setYoyMode("mom")} data-active={yoyMode==="mom"}>月對月</button>
+            <button className="tiny-toggle" onClick={()=>setYoyMode("holiday")} data-active={yoyMode==="holiday"}>節慶</button>
+          </div>
+        </KpiCard>
+        <KpiCard eyebrow="昨日表現" big={nfShort(monthSnap.yesterday.totalRev)} tag={`OCC ${nfPct(monthSnap.yesterday.stay/monthSnap.yesterday.totalRooms,0)}`} tagColor="neutral" sub={`住宿 ${monthSnap.yesterday.stay} 間 ${nfShort(monthSnap.yesterday.stayRev)}・休息 ${monthSnap.yesterday.rest} 次 ${nfShort(monthSnap.yesterday.restRev)}`}><RoomsTwoBar rest={monthSnap.yesterday.rest} stay={monthSnap.yesterday.stay} cap={monthSnap.yesterday.totalRooms} restRev={monthSnap.yesterday.restRev} stayRev={monthSnap.yesterday.stayRev}/></KpiCard>
+      </section>
+
+      {/* 主趨勢圖 */}
+      <section className="card big-trend">
+        <div className="card-head">
+          <div>
+            <div className="eyebrow">營收趨勢 / Revenue Trend</div>
+            <h3 className="card-title">{VIEWS.find(v=>v.id===view).label}・{DIMENSIONS.find(d=>d.id===dimension).label}</h3>
+          </div>
+          <div className="legend-row">
+            {CATEGORIES.map(c=><span className="legend-pill" key={c}><i style={{background:CAT_COLORS[c]}}/>{c}</span>)}
+            {dimension==="day"&&<><span className="legend-divider"/><span className="legend-pill"><i className="band-yellow"/>週末</span><span className="legend-pill"><i className="band-red"/>年節</span></>}
+          </div>
+        </div>
+        <StackedBarTrend rows={series.rows} dimension={dimension} venueKey={view} onBarClick={r=>setDrillRow(r)} highlightHolidays={true} forecast={dimension==="day"?series.forecast:null} kpi={dimension==="day"?monthlyTarget/30:null}/>
+        <div className="trend-footer">
+          <span className="text-xs muted">點擊長條可查看當{{"day":"日","month":"月","year":"年"}[dimension]}細項</span>
+          {dimension==="day"&&series.forecast&&<span className="text-xs muted" style={{display:"inline-flex",alignItems:"center",gap:6}}><i style={{display:"inline-block",width:18,borderTop:"1.5px dashed #3B3A38",height:1}}/>預估趨勢（過去 14 日加權平均 + 週末/年節權重）</span>}
+        </div>
+      </section>
+
+      {/* 第二排 */}
+      <section className="grid-secondary">
+        <div className="card card-compact">
+          <div className="eyebrow">收入項目佔比</div>
+          <h4 className="card-title-sm">類別組成</h4>
+          <div style={{marginTop:12}}><CategoryDonut cats={series.totalsByCat} total={series.totals.total} label={DIMENSIONS.find(d=>d.id===dimension).label+"合計"} size={140}/></div>
+        </div>
+        <div className="card">
+          <div className="eyebrow">營運指標</div>
+          <h4 className="card-title-sm">RevPAR・ADR・房間使用</h4>
+          <div style={{marginTop:12}}><PerformanceMetrics data={performanceMetrics}/></div>
+        </div>
+        <div className="card">
+          <div className="eyebrow">預測 & 警示</div>
+          <h4 className="card-title-sm">未來 7 日</h4>
+          <div style={{marginTop:12}}><ForecastAlerts alerts={forecastAlerts}/></div>
+        </div>
+      </section>
+
+      {/* 熱力圖 */}
+      <section className="card">
+        <div className="card-head">
+          <div>
+            <div className="eyebrow">熱力圖 / Day × Hour</div>
+            <h4 className="card-title-sm">{heatMode==="checkin"?"過去 14 日・Check-in 時段分佈":"過去 14 日・住宿 + 休息間數分佈"}</h4>
+          </div>
+          <div className="heatmap-legend"><span>低</span><div className="heat-grad"/><span>高</span></div>
+        </div>
+        <HourHeatmap days={heatmapData} mode={heatMode} onModeChange={setHeatMode}/>
+      </section>
+
+      {/* 密度切換 */}
+      <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:-8,marginBottom:16}}>
+        <button className="tiny-toggle" onClick={()=>setDensity("comfortable")} data-active={density==="comfortable"}>寬鬆</button>
+        <button className="tiny-toggle" onClick={()=>setDensity("compact")} data-active={density==="compact"}>緊湊</button>
+      </div>
+
+      {drillRow&&<DrillDown row={drillRow} onClose={()=>setDrillRow(null)} dimension={dimension} venueKey={view} daily={daily}/>}
+    </div>
+  );
+}
+
+// ===== 密碼保護 =====
+function PasswordGate({ onUnlock }) {
+  const [val, setVal] = useState('');
+  const [err, setErr] = useState(false);
+  const [errMsg, setErrMsg] = useState('');
+
+  const check = () => {
+    if (val === HMOTEL_PASSWORD) {
+      sessionStorage.setItem('hm_auth', '1');
+      onUnlock();
+    } else {
+      setErr(true);
+      setErrMsg('密碼錯誤，請再試一次');
+      setTimeout(() => setErr(false), 600);
+    }
+  };
+
+  return (
+    <div className="pw-gate">
+      <div className="pw-box">
+        <div className="pw-logo">H</div>
+        <div className="pw-title">H MOTEL</div>
+        <div className="pw-sub">營收儀錶板 / Revenue Dashboard</div>
+        <input
+          className={"pw-input" + (err ? " pw-error" : "")}
+          type="password"
+          placeholder="請輸入密碼"
+          value={val}
+          onChange={e => { setVal(e.target.value); setErrMsg(''); }}
+          onKeyDown={e => e.key === 'Enter' && check()}
+          autoFocus
+        />
+        <button className="pw-btn" onClick={check}>進入儀錶板 →</button>
+        <div className="pw-err-msg">{errMsg}</div>
+      </div>
+    </div>
+  );
+}
+
+function Root() {
+  const [unlocked, setUnlocked] = useState(
+    sessionStorage.getItem('hm_auth') === '1'
+  );
+  if (!unlocked) return <PasswordGate onUnlock={() => setUnlocked(true)} />;
+  return <App />;
+}
+
+// Render
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<Root/>);
+</script>
+</body>
+</html>
