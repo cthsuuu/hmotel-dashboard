@@ -751,14 +751,13 @@ function RoomsTwoBar({rest,stay,cap,restRev,stayRev}){
 }
 
 function PerformanceMetrics({data}){
-  const M=(label,hint,val,bar,barColor)=>(<div className="perf-metric"><div className="perf-label">{label}<span className="perf-hint">{hint}</span></div><div className="perf-value mono-tabular">{val}</div><div className="perf-bar"><div style={{width:bar+"%",background:barColor}}/></div></div>);
+  const Single=(label,hint,val,bar,barColor)=>(<div className="perf-metric"><div className="perf-label">{label}<span className="perf-hint">{hint}</span></div><div className="perf-value mono-tabular">{val}</div><div className="perf-bar"><div style={{width:bar+"%",background:barColor}}/></div></div>);
+  const Pair=(lbl1,val1,lbl2,val2,bar,barColor)=>(<div className="perf-metric"><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}}><span style={{fontSize:11,color:"#8A8985"}}>{lbl1} <span className="mono-tabular" style={{fontSize:16,fontWeight:700,color:"var(--hm-ink)"}}>{val1}</span></span><span style={{fontSize:11,color:"#8A8985"}}>{lbl2} <span className="mono-tabular" style={{fontSize:14,color:"#585755"}}>{val2}</span></span></div><div className="perf-bar"><div style={{width:bar+"%",background:barColor}}/></div></div>);
   return(<div style={{display:"grid",gap:14}}>
-    {M("RevPAR","每可售房收益・每日",nfShort(data.revPAR),Math.min(100,data.revPAR/3500*100),"var(--hm-gray)")}
-    {M("住宿率","住宿 / "+data.roomCap,nfPct(data.stayRate,1),Math.min(100,data.stayRate*100),"var(--hm-gray)")}
-    {M("住宿 ADR","住宿收入 / 間數",nf(data.stayADR),Math.min(100,data.stayADR/4000*100),"var(--hm-gray)")}
-    {M("休息率","休息 / "+data.roomCap,nfPct(data.restRate,1),Math.min(100,data.restRate/2*100),"var(--hm-yellow)")}
-    {M("休息 ADR","休息收入 / 次數",nf(data.restADR),Math.min(100,data.restADR/1500*100),"var(--hm-yellow)")}
-    {M("使用率","(住宿+休息) / "+data.roomCap,nfPct(data.utilization,1),Math.min(100,data.utilization/2.5*100),"linear-gradient(90deg,var(--hm-yellow) 0%,var(--hm-gray) 100%)")}
+    {Single("RevPAR","每可售房收益・每日",nfShort(data.revPAR),Math.min(100,data.revPAR/3500*100),"var(--hm-gray)")}
+    {Pair("住宿率",nfPct(data.stayRate,1),"ADR",nf(data.stayADR),Math.min(100,data.stayRate*100),"var(--hm-gray)")}
+    {Pair("休息率",nfPct(data.restRate,1),"ADR",nf(data.restADR),Math.min(100,data.restRate/3*100),"var(--hm-yellow)")}
+    {Single("使用率","(住宿+休息) / "+data.roomCap,nfPct(data.utilization,1),Math.min(100,data.utilization/3*100),"linear-gradient(90deg,var(--hm-yellow) 0%,var(--hm-gray) 100%)")}
     <div style={{fontSize:10,color:"#8A8985",paddingTop:6,borderTop:"1px dashed var(--hm-gray-soft)"}}>{data.period}・每日比率平均</div>
   </div>);
 }
@@ -953,7 +952,7 @@ function buildHeatmap(daily,view){
 
 function buildForecastAlerts(daily,view,monthlyTarget){
   const allKeys=Object.keys(daily).sort();const todayStr=isoDate(new Date());
-  const todayIdx=allKeys.indexOf(todayStr);const startIdx=todayIdx>=0?todayIdx+1:allKeys.length-1;
+  const todayIdx=allKeys.indexOf(todayStr);const startIdx=todayIdx>=0?todayIdx:allKeys.length-1;
   const future7Keys=allKeys.slice(startIdx,startIdx+7);const dailyTarget=monthlyTarget/30;
   const past14=allKeys.filter(k=>k<=todayStr&&!daily[k].future).slice(-14);
   const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:dailyTarget;
@@ -1134,7 +1133,7 @@ function App(){
             <button className="tiny-toggle" onClick={()=>setYoyMode("mom")} data-active={yoyMode==="mom"}>月對月</button>
           </div>
         </KpiCard>
-        <KpiCard eyebrow="昨日表現" big={nf(monthSnap.yesterday.totalRev)} tag={`住宿率 ${nfPct(monthSnap.yesterday.stay/monthSnap.yesterday.totalRooms,0)}・休息率 ${nfPct(monthSnap.yesterday.rest/monthSnap.yesterday.totalRooms,0)}`} tagColor="neutral" sub={`住宿 ${monthSnap.yesterday.stay}間 ${nf(monthSnap.yesterday.stayRev)}・休息 ${monthSnap.yesterday.rest}次 ${nf(monthSnap.yesterday.restRev)}・其他 ${nf(monthSnap.yesterday.totalRev-monthSnap.yesterday.stayRev-monthSnap.yesterday.restRev)}`}></KpiCard>
+        <KpiCard eyebrow="昨日表現" big={nf(monthSnap.yesterday.totalRev)} tag={`住宿率 ${nfPct(monthSnap.yesterday.stay/monthSnap.yesterday.totalRooms,0)}・休息率 ${nfPct(monthSnap.yesterday.rest/monthSnap.yesterday.totalRooms,0)}`} tagColor="neutral">{(()=>{const yd=monthSnap.yesterday;const other=yd.totalRev-yd.stayRev-yd.restRev;const items=[{label:`住宿 ${yd.stay}間`,val:yd.stayRev,color:"var(--hm-gray)"},{label:`休息 ${yd.rest}次`,val:yd.restRev,color:"var(--hm-yellow)"},{label:"其他",val:other,color:"var(--hm-gray-soft)"}];return(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:8}}>{items.map(it=>{const pct=yd.totalRev?it.val/yd.totalRev*100:0;return(<div key={it.label}><div style={{fontSize:10,color:"#8A8985",marginBottom:3}}>{it.label}</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--hm-ink)",fontWeight:600}}>{nf(it.val)}</div><div style={{marginTop:5,height:3,background:"var(--hm-gray-pale)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",background:it.color,borderRadius:2}}/></div><div style={{fontSize:10,color:"#8A8985",marginTop:2}}>{pct.toFixed(1)}%</div></div>);})}</div>);})()}</KpiCard>
       </section>
 
       {/* 主趨勢圖 */}
@@ -1179,6 +1178,32 @@ function App(){
           <div className="eyebrow">預測 & 警示</div>
           <h4 className="card-title-sm">未來 7 日</h4>
           <div style={{marginTop:12}}><ForecastAlerts alerts={forecastAlerts}/></div>
+          {monthSnap&&(()=>{
+            const daysLeft=monthSnap.daysInMonth-monthSnap.daysElapsed;
+            const gap=monthSnap.target-monthSnap.actual;
+            const needed=daysLeft>0?gap/daysLeft:0;
+            const current=monthSnap.dailyAvg;
+            const diff=needed-current;
+            const ok=diff<=0;
+            return(<div style={{marginTop:16,paddingTop:14,borderTop:"1px dashed var(--hm-gray-soft)"}}>
+              <div style={{fontSize:11,color:"#8A8985",marginBottom:10,letterSpacing:"0.06em",textTransform:"uppercase"}}>達標缺口分析</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                <div style={{background:"var(--hm-gray-pale)",borderRadius:6,padding:"8px 10px"}}>
+                  <div style={{fontSize:10,color:"#8A8985",marginBottom:3}}>剩餘天數</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--hm-ink)"}}>{daysLeft} 天</div>
+                </div>
+                <div style={{background:"var(--hm-gray-pale)",borderRadius:6,padding:"8px 10px"}}>
+                  <div style={{fontSize:10,color:"#8A8985",marginBottom:3}}>缺口</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:ok?"#4F8A5C":"#C0392B"}}>{ok?"達標":nfShort(gap)}</div>
+                </div>
+              </div>
+              <div style={{background:ok?"rgba(79,138,92,0.08)":"rgba(192,57,43,0.08)",borderRadius:6,padding:"10px 12px"}}>
+                <div style={{fontSize:11,color:"#8A8985",marginBottom:4}}>每日需達</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:20,fontWeight:700,color:ok?"#4F8A5C":"#C0392B"}}>{nfShort(needed)}</div>
+                <div style={{fontSize:11,color:"#8A8985",marginTop:4}}>目前日均 {nfShort(current)}・{ok?"已超出目標":`還差 ${nfShort(diff)}`}</div>
+              </div>
+            </div>);
+          })()}
         </div>
       </section>
 
