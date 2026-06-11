@@ -430,6 +430,14 @@ function generateCheckinDistribution(venue,dow,holiday,restCount,stayCount,rng){
   }
   return checkins;
 }
+function generateCheckoutDistribution(venue,dow,holiday,restCount,stayCount,rng){
+  const checkouts=new Array(24).fill(0);
+  const restOutPeak=18+(rng()-0.5)*2;
+  for(let i=0;i<restCount;i++){const h=Math.max(0,Math.min(23,Math.round(restOutPeak+(rng()-0.5)*4)));checkouts[h]++;}
+  const stayOutPeak=11+(rng()-0.5)*2;
+  for(let i=0;i<stayCount;i++){const h=Math.max(0,Math.min(23,Math.round(stayOutPeak+(rng()-0.5)*3)));checkouts[h]++;}
+  return checkouts;
+}
 
 function generateDaily(seed=42){
   const rng=mulberry32(seed);
@@ -469,7 +477,8 @@ function generateDaily(seed=42){
       const stayCount=Math.max(0,Math.min(VENUE_ROOMS[v],Math.round(result["住宿"]/adrStay)));
       const hourly=generateHourlyShape(v,dow,!!hol||!!cluster,rng);
       const checkins=generateCheckinDistribution(v,dow,!!hol||!!cluster,restCount,stayCount,rng);
-      out[ds].venues[v]=future?null:{categories:result,total:acc,rooms:{rest:restCount,stay:stayCount,total:VENUE_ROOMS[v]},hourly,checkins};
+      const checkouts=generateCheckoutDistribution(v,dow,!!hol||!!cluster,restCount,stayCount,rng);
+      out[ds].venues[v]=future?null:{categories:result,total:acc,rooms:{rest:restCount,stay:stayCount,total:VENUE_ROOMS[v]},hourly,checkins,checkouts};
     }
     cur.setDate(cur.getDate()+1);dayIdx++;
   }
@@ -557,7 +566,8 @@ function mergeApiData(apiRows, baseDailyData){
       const seed=(date+venue).split('').reduce((a,b)=>a+b.charCodeAt(0),0);
       const hourly=generateHourlyShape(venue,dow,hol,mulberry32(seed));
       const checkins=generateCheckinDistribution(venue,dow,hol,rooms.rest,rooms.stay,mulberry32(seed+1));
-      merged[date].venues[venue]={categories,total,rooms,hourly,checkins};
+      const checkouts=generateCheckoutDistribution(venue,dow,hol,rooms.rest,rooms.stay,mulberry32(seed+2));
+      merged[date].venues[venue]={categories,total,rooms,hourly,checkins,checkouts};
     }
   }
   return merged;
@@ -675,7 +685,7 @@ function HourHeatmap({days,height=220,mode="rooms",onModeChange}){
   const innerW=Math.max(50,w-padL-padR),innerH=height-padT-padB;
   const cellW=innerW/24,cellH=innerH/Math.max(1,days.length);
   let maxV=0;
-  for(const d of days)for(let h=0;h<24;h++){let val=mode==="checkin"?(d.checkins&&d.checkins[h])||0:((d.restRooms||0)+(d.stayRooms||0))*d.hourly[h];maxV=Math.max(maxV,val);}
+  for(const d of days)for(let h=0;h<24;h++){let val=mode==="checkin"?(d.checkins&&d.checkins[h])||0:mode==="checkout"?(d.checkouts&&d.checkouts[h])||0:((d.restRooms||0)+(d.stayRooms||0))*d.hourly[h];maxV=Math.max(maxV,val);}
   const colorFor=v=>{if(!v)return"#FBF9F2";const t=Math.min(1,v/maxV);if(t<0.5){const p=t/0.5;return`rgba(239,229,79,${0.20+p*0.65})`;}else{const p=(t-0.5)/0.5;return`rgba(88,87,85,${0.55+p*0.35})`;}};
   const[hov,setHov]=useState(null);
   return(
@@ -684,14 +694,14 @@ function HourHeatmap({days,height=220,mode="rooms",onModeChange}){
         {days.map((d,i)=>(
           <g key={d.date} transform={`translate(${padL},${padT+i*cellH})`}>
             <text x={-6} y={cellH/2} fontSize="9" fill="#8A8985" textAnchor="end" dominantBaseline="middle" fontFamily="JetBrains Mono,monospace">{d.label}</text>
-            {Array.from({length:24},(_,h)=>{let v=mode==="checkin"?(d.checkins&&d.checkins[h])||0:((d.restRooms||0)+(d.stayRooms||0))*d.hourly[h];return(<rect key={h} x={h*cellW} y={1} width={Math.max(0.5,cellW-1)} height={Math.max(0.5,cellH-1)} fill={colorFor(v)} onMouseEnter={()=>setHov({d,h,v,x:padL+h*cellW+cellW/2,y:padT+i*cellH,mode})} onMouseLeave={()=>setHov(null)} style={{cursor:"crosshair"}}/>);})}
+            {Array.from({length:24},(_,h)=>{let v=mode==="checkin"?(d.checkins&&d.checkins[h])||0:mode==="checkout"?(d.checkouts&&d.checkouts[h])||0:((d.restRooms||0)+(d.stayRooms||0))*d.hourly[h];return(<rect key={h} x={h*cellW} y={1} width={Math.max(0.5,cellW-1)} height={Math.max(0.5,cellH-1)} fill={colorFor(v)} onMouseEnter={()=>setHov({d,h,v,x:padL+h*cellW+cellW/2,y:padT+i*cellH,mode})} onMouseLeave={()=>setHov(null)} style={{cursor:"crosshair"}}/>);})}
           </g>
         ))}
         {[0,3,6,9,12,15,18,21].map(h=><text key={h} x={padL+h*cellW+cellW/2} y={padT+days.length*cellH+14} fontSize="9" fill="#8A8985" textAnchor="middle" fontFamily="JetBrains Mono,monospace">{String(h).padStart(2,"0")}</text>)}
         <text x={padL+24*cellW} y={padT+days.length*cellH+14} fontSize="9" fill="#8A8985" textAnchor="end" fontFamily="JetBrains Mono,monospace">時 / hour</text>
       </svg>
-      {hov&&<div style={{position:"absolute",left:Math.min(hov.x+8,w-140),top:hov.y,background:"#1C1B19",color:"#FBF9F2",padding:"6px 8px",borderRadius:6,fontSize:11,pointerEvents:"none",whiteSpace:"nowrap",zIndex:30}}><div style={{fontFamily:"var(--font-mono)"}}>{hov.d.label} · {String(hov.h).padStart(2,"0")}:00</div><div style={{fontFamily:"var(--font-mono)",color:"#EFE54F"}}>{hov.mode==="checkin"?`${Math.round(hov.v)} 組`:`${Math.round(hov.v)} 間`}</div></div>}
-      {onModeChange&&<div style={{position:"absolute",top:8,right:8,display:"flex",gap:4,zIndex:10}}><button className="heat-mode-btn" data-active={mode==="rooms"} onClick={()=>onModeChange("rooms")}>住宿+休息</button><button className="heat-mode-btn" data-active={mode==="checkin"} onClick={()=>onModeChange("checkin")}>Check-in</button></div>}
+      {hov&&<div style={{position:"absolute",left:Math.min(hov.x+8,w-140),top:hov.y,background:"#1C1B19",color:"#FBF9F2",padding:"6px 8px",borderRadius:6,fontSize:11,pointerEvents:"none",whiteSpace:"nowrap",zIndex:30}}><div style={{fontFamily:"var(--font-mono)"}}>{hov.d.label} · {String(hov.h).padStart(2,"0")}:00</div><div style={{fontFamily:"var(--font-mono)",color:"#EFE54F"}}>{Math.round(hov.v)} 組</div></div>}
+      {onModeChange&&<div style={{position:"absolute",top:8,right:8,display:"flex",gap:4,zIndex:10}}><button className="heat-mode-btn" data-active={mode==="checkin"} onClick={()=>onModeChange("checkin")}>Check-in</button><button className="heat-mode-btn" data-active={mode==="checkout"} onClick={()=>onModeChange("checkout")}>Check-out</button></div>}
     </div>
   );
 }
@@ -838,7 +848,7 @@ function buildSeries(daily,dimension,view,customRange){
     const past14=allKeys.filter(k=>k<todayStr).slice(-14);const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:0;
     const monthKeys=allKeys.filter(k=>k.slice(0,7)===todayStr.slice(0,7));
     const forecastPts=[];
-    monthKeys.forEach((k,i)=>{if(k<=todayStr)return;const d=daily[k];if(!d)return;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);const v=past14Avg*boost/1.15;const idx=rows.findIndex(r=>r.dailyKey===k);if(idx>=0)forecastPts.push({i:idx,v});});
+    monthKeys.forEach((k,i)=>{if(k<=todayStr)return;const d=daily[k];if(!d)return;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);const v=past14Avg*boost/1.05;const idx=rows.findIndex(r=>r.dailyKey===k);if(idx>=0)forecastPts.push({i:idx,v});});
     return{rows,totalsByCat,totals,forecast:forecastPts.length?{points:forecastPts}:null};
   } else if(dimension==="month"){
     const months=aggregateMonthly(daily);const orderedM=Object.keys(months).sort();
@@ -867,7 +877,7 @@ function buildMonthSnapshot(daily,view,target){
   const past14=allKeys.filter(k=>k<refStr).slice(-14);
   const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:dailyAvg;
   let forecastRem=0;
-  for(const k of monthKeys){if(k<=refStr)continue;const d=daily[k];if(!d)continue;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);forecastRem+=past14Avg*boost/1.15;}
+  for(const k of monthKeys){if(k<=refStr)continue;const d=daily[k];if(!d)continue;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);forecastRem+=past14Avg*boost/1.05;}
   const forecast=actual+forecastRem,completion=actual/target;
   const yesterdayKey=elapsed[elapsed.length-1];const yd=yesterdayKey?daily[yesterdayKey]:null;
   const yRooms=yd?roomsFor(yd,view):{rest:0,stay:0,total:view==="combined"?58:VENUE_ROOMS[view]};
@@ -943,10 +953,10 @@ function buildHeatmap(daily,view){
   return past14.map(k=>{
     const d=daily[k];if(!d)return null;
     const total=sumCats(catsFor(d,view));const rooms=roomsFor(d,view);
-    let hourly=new Array(24).fill(0),checkins=new Array(24).fill(0);
-    if(view==="combined"){for(const v of["xiyue","jiati"]){if(!d.venues[v])continue;const t=d.venues[v].total;for(let h=0;h<24;h++){hourly[h]+=d.venues[v].hourly[h]*t;checkins[h]+=d.venues[v].checkins[h];}}const s=hourly.reduce((a,b)=>a+b,0);if(s)hourly=hourly.map(x=>x/s);}
-    else{hourly=d.venues[view]?d.venues[view].hourly:hourly;checkins=d.venues[view]?d.venues[view].checkins:checkins;}
-    return{date:k,label:`${parseInt(k.slice(5,7))}/${parseInt(k.slice(8,10))} ${["日","一","二","三","四","五","六"][d.dow]}`,dow:d.dow,total,hourly,restRooms:rooms.rest,stayRooms:rooms.stay,checkins};
+    let hourly=new Array(24).fill(0),checkins=new Array(24).fill(0),checkouts=new Array(24).fill(0);
+    if(view==="combined"){for(const v of["xiyue","jiati"]){if(!d.venues[v])continue;const t=d.venues[v].total;for(let h=0;h<24;h++){hourly[h]+=d.venues[v].hourly[h]*t;checkins[h]+=d.venues[v].checkins[h];checkouts[h]+=(d.venues[v].checkouts||new Array(24).fill(0))[h];}}const s=hourly.reduce((a,b)=>a+b,0);if(s)hourly=hourly.map(x=>x/s);}
+    else{hourly=d.venues[view]?d.venues[view].hourly:hourly;checkins=d.venues[view]?d.venues[view].checkins:checkins;checkouts=d.venues[view]?(d.venues[view].checkouts||checkouts):checkouts;}
+    return{date:k,label:`${parseInt(k.slice(5,7))}/${parseInt(k.slice(8,10))} ${["日","一","二","三","四","五","六"][d.dow]}`,dow:d.dow,total,hourly,restRooms:rooms.rest,stayRooms:rooms.stay,checkins,checkouts};
   }).filter(Boolean);
 }
 
@@ -956,7 +966,7 @@ function buildForecastAlerts(daily,view,monthlyTarget){
   const future7Keys=allKeys.slice(startIdx,startIdx+7);const dailyTarget=monthlyTarget/30;
   const past14=allKeys.filter(k=>k<=todayStr&&!daily[k].future).slice(-14);
   const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:dailyTarget;
-  const days=future7Keys.map(k=>{const d=daily[k];if(!d)return null;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);const forecast=past14Avg*boost/1.15;const pct=forecast/dailyTarget;const status=pct>=1?"ok":pct>=0.85?"warn":"alert";const m=k.slice(5,7),dd=k.slice(8,10);return{date:k,label:`${parseInt(m)}/${parseInt(dd)} ${["日","一","二","三","四","五","六"][d.dow]}`,forecast,target:dailyTarget,status};}).filter(Boolean);
+  const days=future7Keys.map(k=>{const d=daily[k];if(!d)return null;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);const forecast=past14Avg*boost/1.05;const pct=forecast/dailyTarget;const status=pct>=1?"ok":pct>=0.85?"warn":"alert";const m=k.slice(5,7),dd=k.slice(8,10);return{date:k,label:`${parseInt(m)}/${parseInt(dd)} ${["日","一","二","三","四","五","六"][d.dow]}`,forecast,target:dailyTarget,status};}).filter(Boolean);
   const lowDays=days.filter(d=>d.status==="alert").length;
   return{days,summary:lowDays>0?`⚠️ ${lowDays} 天預估低於目標 85%`:"✓ 未來一週預估正常"};
 }
@@ -1037,7 +1047,7 @@ function App(){
   const[drillRow,setDrillRow]=useState(null);
   const[customRange,setCustomRange]=useState(null);
   const[yoyMode,setYoyMode]=useState("yoy");
-  const[heatMode,setHeatMode]=useState("rooms");
+  const[heatMode,setHeatMode]=useState("checkin");
   const[density,setDensity]=useState("comfortable");
 
   const loadData=useCallback(async()=>{
