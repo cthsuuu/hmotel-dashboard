@@ -211,7 +211,7 @@ body {
 .chart-wrap { position:relative;overflow:visible; }
 
 /* ===== Grid Secondary ===== */
-.grid-secondary { display:grid;grid-template-columns:300px 1fr 1.15fr;gap:16px;margin-bottom:var(--space-5); }
+.grid-secondary { display:grid;grid-template-columns:300px 1fr 300px;gap:16px;margin-bottom:var(--space-5); }
 @media (max-width:1100px) { .grid-secondary { grid-template-columns:1fr 1fr; } }
 @media (max-width:720px) { .grid-secondary { grid-template-columns:1fr; } }
 
@@ -751,7 +751,43 @@ function RoomsTwoBar({rest,stay,cap,restRev,stayRev}){
 }
 
 function PerformanceMetrics({data}){
-  return(<div style={{display:"grid",gap:14}}><div className="perf-metric"><div className="perf-label">RevPAR<span className="perf-hint">每可售房收益・每日</span></div><div className="perf-value mono-tabular">{nfShort(data.revPAR)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.revPAR/3500*100)+"%",background:"var(--hm-gray)"}}/></div></div><div className="perf-metric"><div className="perf-label">ADR<span className="perf-hint">平均房價</span></div><div className="perf-value mono-tabular">{nfShort(data.adr)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.adr/4500*100)+"%",background:"var(--hm-gray)"}}/></div></div><div className="perf-metric"><div className="perf-label">住宿率<span className="perf-hint">住宿 / {data.roomCap}</span></div><div className="perf-value mono-tabular">{nfPct(data.stayRate,1)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.stayRate*100)+"%",background:"var(--hm-gray)"}}/></div></div><div className="perf-metric"><div className="perf-label">休息率<span className="perf-hint">休息 / {data.roomCap}</span></div><div className="perf-value mono-tabular">{nfPct(data.restRate,1)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.restRate/2*100)+"%",background:"var(--hm-yellow)"}}/></div></div><div className="perf-metric"><div className="perf-label">使用率<span className="perf-hint">(住宿+休息) / {data.roomCap}</span></div><div className="perf-value mono-tabular">{nfPct(data.utilization,1)}</div><div className="perf-bar"><div style={{width:Math.min(100,data.utilization/2.5*100)+"%",background:"linear-gradient(90deg,var(--hm-yellow) 0%,var(--hm-gray) 100%)"}}/></div></div><div style={{fontSize:10,color:"#8A8985",paddingTop:6,borderTop:"1px dashed var(--hm-gray-soft)"}}>{data.period}・每日比率平均</div></div>);
+  const M=(label,hint,val,bar,barColor)=>(<div className="perf-metric"><div className="perf-label">{label}<span className="perf-hint">{hint}</span></div><div className="perf-value mono-tabular">{val}</div><div className="perf-bar"><div style={{width:bar+"%",background:barColor}}/></div></div>);
+  return(<div style={{display:"grid",gap:14}}>
+    {M("RevPAR","每可售房收益・每日",nfShort(data.revPAR),Math.min(100,data.revPAR/3500*100),"var(--hm-gray)")}
+    {M("住宿率","住宿 / "+data.roomCap,nfPct(data.stayRate,1),Math.min(100,data.stayRate*100),"var(--hm-gray)")}
+    {M("住宿 ADR","住宿收入 / 間數",nf(data.stayADR),Math.min(100,data.stayADR/4000*100),"var(--hm-gray)")}
+    {M("休息率","休息 / "+data.roomCap,nfPct(data.restRate,1),Math.min(100,data.restRate/2*100),"var(--hm-yellow)")}
+    {M("休息 ADR","休息收入 / 次數",nf(data.restADR),Math.min(100,data.restADR/1500*100),"var(--hm-yellow)")}
+    {M("使用率","(住宿+休息) / "+data.roomCap,nfPct(data.utilization,1),Math.min(100,data.utilization/2.5*100),"linear-gradient(90deg,var(--hm-yellow) 0%,var(--hm-gray) 100%)")}
+    <div style={{fontSize:10,color:"#8A8985",paddingTop:6,borderTop:"1px dashed var(--hm-gray-soft)"}}>{data.period}・每日比率平均</div>
+  </div>);
+}
+function WeekdayAvgPanel({data}){
+  if(!data)return null;
+  const{avgs,max,labels}=data;
+  return(<div style={{display:"grid",gap:7}}>
+    {[1,2,3,4,5,6,0].map(dow=>(
+      <div key={dow} style={{display:"flex",alignItems:"center",gap:8}}>
+        <span style={{width:14,fontSize:11,color:"#8A8985",fontFamily:"var(--font-mono)",flexShrink:0}}>{labels[dow]}</span>
+        <div style={{flex:1,height:7,background:"var(--hm-gray-pale)",borderRadius:4,overflow:"hidden"}}>
+          <div style={{height:"100%",width:(avgs[dow]/max*100)+"%",background:dow===5||dow===6?"var(--hm-yellow)":"var(--hm-gray)",borderRadius:4}}/>
+        </div>
+        <span style={{width:42,fontSize:11,fontFamily:"var(--font-mono)",color:"#585755",textAlign:"right",flexShrink:0}}>{nfShort(avgs[dow])}</span>
+      </div>
+    ))}
+    <div style={{fontSize:10,color:"#8A8985",paddingTop:4,borderTop:"1px dashed var(--hm-gray-soft)"}}>近 12 週・各星期平均</div>
+  </div>);
+}
+function YesterdayCompPanel({data}){
+  if(!data)return null;
+  const{date,total,totalAvg,stay,stayAvg,rest,restAvg}=data;
+  const row=(label,val,avg,unit)=>{const p=avg?(val-avg)/avg:0;const c=p>=0?"#4F8A5C":"#C0392B";return(<div key={label} style={{display:"flex",alignItems:"center",gap:6,justifyContent:"space-between"}}><span style={{fontSize:11,color:"#585755",width:32,flexShrink:0}}>{label}</span><span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--hm-ink)",flex:1}}>{unit?val+unit:nfShort(val)}</span><span style={{fontSize:11,color:c,fontFamily:"var(--font-mono)",flexShrink:0}}>{p>=0?"▲":"▼"}{Math.abs(p*100).toFixed(1)}%</span></div>);};
+  return(<div style={{display:"grid",gap:9}}>
+    <div style={{fontSize:10,color:"#8A8985"}}>{date.slice(5).replace("-","/")} vs 前14日均</div>
+    {row("業績",total,totalAvg,"")}
+    {row("住宿",stay,stayAvg,"間")}
+    {row("休息",rest,restAvg,"次")}
+  </div>);
 }
 
 function ForecastAlerts({alerts}){
@@ -819,18 +855,20 @@ function buildSeries(daily,dimension,view,customRange){
 }
 
 function buildMonthSnapshot(daily,view,target){
-  const todayStr=isoDate(new Date());const ym=todayStr.slice(0,7);
+  const now=new Date();const todayStr=isoDate(now);const ym=todayStr.slice(0,7);
+  // 營業日截止 08:00：一天的資料在隔天 08:00 後才算完整
+  const refStr=isoDate(new Date(now.getTime()-8*3600*1000));
   const allKeys=Object.keys(daily).sort();
   const monthKeys=allKeys.filter(k=>k.slice(0,7)===ym);
-  const elapsed=monthKeys.filter(k=>k<todayStr&&!daily[k].future);
+  const elapsed=monthKeys.filter(k=>k<refStr&&!daily[k].future);
   let actual=0;const dailySeries=[];
   for(const k of elapsed){const total=sumCats(catsFor(daily[k],view));actual+=total;dailySeries.push(total);}
   const daysInMonth=new Date(parseInt(ym.slice(0,4)),parseInt(ym.slice(5,7)),0).getDate();
   const daysElapsed=elapsed.length;const dailyAvg=daysElapsed?actual/daysElapsed:0;
-  const past14=allKeys.filter(k=>k<todayStr).slice(-14);
+  const past14=allKeys.filter(k=>k<refStr).slice(-14);
   const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:dailyAvg;
   let forecastRem=0;
-  for(const k of monthKeys){if(k<=todayStr)continue;const d=daily[k];if(!d)continue;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);forecastRem+=past14Avg*boost/1.15;}
+  for(const k of monthKeys){if(k<=refStr)continue;const d=daily[k];if(!d)continue;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);forecastRem+=past14Avg*boost/1.15;}
   const forecast=actual+forecastRem,completion=actual/target;
   const yesterdayKey=elapsed[elapsed.length-1];const yd=yesterdayKey?daily[yesterdayKey]:null;
   const yRooms=yd?roomsFor(yd,view):{rest:0,stay:0,total:view==="combined"?58:VENUE_ROOMS[view]};
@@ -874,11 +912,30 @@ function buildYoY(daily,view,mode="yoy"){
 function buildPerformanceMetrics(daily,view,dimension){
   const allKeys=Object.keys(daily).sort();const todayStr=isoDate(new Date());
   const window=allKeys.filter(k=>k<=todayStr&&!daily[k].future).slice(-30);
-  let totalRev=0,totalOccupied=0,sumStayRate=0,sumRestRate=0,sumUtil=0;
+  let totalRev=0,totalOccupied=0,totalRest=0,totalStayRev=0,totalRestRev=0,sumStayRate=0,sumRestRate=0,sumUtil=0;
   const roomCap=TOTAL_ROOMS[view]||(VENUE_ROOMS.xiyue+VENUE_ROOMS.jiati);
-  for(const k of window){const d=daily[k];if(!d)continue;const rev=sumCats(catsFor(d,view));const rooms=roomsFor(d,view);totalRev+=rev;totalOccupied+=rooms.stay;sumStayRate+=rooms.stay/roomCap;sumRestRate+=rooms.rest/roomCap;sumUtil+=(rooms.stay+rooms.rest)/roomCap;}
+  for(const k of window){const d=daily[k];if(!d)continue;const cats=catsFor(d,view);const rev=sumCats(cats);const rooms=roomsFor(d,view);totalRev+=rev;totalOccupied+=rooms.stay;totalRest+=rooms.rest;totalStayRev+=cats["住宿"];totalRestRev+=cats["休息"];sumStayRate+=rooms.stay/roomCap;sumRestRate+=rooms.rest/roomCap;sumUtil+=(rooms.stay+rooms.rest)/roomCap;}
   const days=window.length||1;
-  return{revPAR:totalRev/(roomCap*days),adr:totalOccupied>0?totalRev/totalOccupied:0,stayRate:sumStayRate/days,restRate:sumRestRate/days,utilization:sumUtil/days,period:"近 30 日",roomCap};
+  return{revPAR:totalRev/(roomCap*days),stayADR:totalOccupied>0?totalStayRev/totalOccupied:0,restADR:totalRest>0?totalRestRev/totalRest:0,stayRate:sumStayRate/days,restRate:sumRestRate/days,utilization:sumUtil/days,period:"近 30 日",roomCap};
+}
+function buildWeekdayAvg(daily,view){
+  const allKeys=Object.keys(daily).sort();
+  const now=new Date();const refStr=isoDate(new Date(now.getTime()-8*3600*1000));
+  const recent=allKeys.filter(k=>k<refStr&&!daily[k].future).slice(-84);
+  const sums=[0,0,0,0,0,0,0],counts=[0,0,0,0,0,0,0];
+  for(const k of recent){const d=daily[k];if(!d)continue;const total=sumCats(catsFor(d,view));if(!total)continue;sums[d.dow]+=total;counts[d.dow]++;}
+  const avgs=sums.map((s,i)=>counts[i]?Math.round(s/counts[i]):0);
+  return{avgs,max:Math.max(...avgs)||1,counts,labels:["日","一","二","三","四","五","六"]};
+}
+function buildYesterdayComp(daily,view){
+  const allKeys=Object.keys(daily).sort();
+  const now=new Date();const refStr=isoDate(new Date(now.getTime()-8*3600*1000));
+  const done=allKeys.filter(k=>k<refStr&&!daily[k].future);
+  const ydKey=done[done.length-1];if(!ydKey)return null;
+  const yd=daily[ydKey];const ydCats=catsFor(yd,view);const ydRooms=roomsFor(yd,view);const ydTotal=sumCats(ydCats);
+  const p14=done.slice(-15,-1);
+  const avg=(fn)=>p14.length?p14.reduce((a,k)=>a+fn(daily[k]),0)/p14.length:0;
+  return{date:ydKey,total:ydTotal,totalAvg:avg(d=>sumCats(catsFor(d,view))),stay:ydRooms.stay,stayAvg:avg(d=>roomsFor(d,view).stay),rest:ydRooms.rest,restAvg:avg(d=>roomsFor(d,view).rest)};
 }
 
 function buildHeatmap(daily,view){
@@ -900,7 +957,7 @@ function buildForecastAlerts(daily,view,monthlyTarget){
   const future7Keys=allKeys.slice(startIdx,startIdx+7);const dailyTarget=monthlyTarget/30;
   const past14=allKeys.filter(k=>k<=todayStr&&!daily[k].future).slice(-14);
   const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:dailyTarget;
-  const days=future7Keys.map(k=>{const d=daily[k];if(!d)return null;const boost=(d.cluster?1.55:d.holiday?1.30:1)*(d.dow===6?1.45:d.dow===5?1.28:d.dow===0?1.12:d.dow===4?1.02:0.92);const forecast=past14Avg*boost/1.15;const pct=forecast/dailyTarget;const status=pct>=1?"ok":pct>=0.85?"warn":"alert";const m=k.slice(5,7),dd=k.slice(8,10);return{date:k,label:`${parseInt(m)}/${parseInt(dd)} ${["日","一","二","三","四","五","六"][d.dow]}`,forecast,target:dailyTarget,status};}).filter(Boolean);
+  const days=future7Keys.map(k=>{const d=daily[k];if(!d)return null;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);const forecast=past14Avg*boost/1.15;const pct=forecast/dailyTarget;const status=pct>=1?"ok":pct>=0.85?"warn":"alert";const m=k.slice(5,7),dd=k.slice(8,10);return{date:k,label:`${parseInt(m)}/${parseInt(dd)} ${["日","一","二","三","四","五","六"][d.dow]}`,forecast,target:dailyTarget,status};}).filter(Boolean);
   const lowDays=days.filter(d=>d.status==="alert").length;
   return{days,summary:lowDays>0?`⚠️ ${lowDays} 天預估低於目標 85%`:"✓ 未來一週預估正常"};
 }
@@ -1040,6 +1097,8 @@ function App(){
   const performanceMetrics=useMemo(()=>daily?buildPerformanceMetrics(daily,view,dimension):null,[daily,view,dimension]);
   const heatmapData=useMemo(()=>daily?buildHeatmap(daily,view):null,[daily,view]);
   const forecastAlerts=useMemo(()=>daily?buildForecastAlerts(daily,view,monthlyTarget):null,[daily,view,monthlyTarget]);
+  const weekdayAvg=useMemo(()=>daily?buildWeekdayAvg(daily,view):null,[daily,view]);
+  const yesterdayComp=useMemo(()=>daily?buildYesterdayComp(daily,view):null,[daily,view]);
   const isDense=density==="compact";
 
   if(loading){
@@ -1099,10 +1158,17 @@ function App(){
 
       {/* 第二排 */}
       <section className="grid-secondary">
-        <div className="card card-compact">
-          <div className="eyebrow">收入項目佔比</div>
-          <h4 className="card-title-sm">類別組成</h4>
-          <div style={{marginTop:12}}><CategoryDonut cats={series.totalsByCat} total={series.totals.total} label={DIMENSIONS.find(d=>d.id===dimension).label+"合計"} size={140}/></div>
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          <div className="card card-compact">
+            <div className="eyebrow">週間平均</div>
+            <h4 className="card-title-sm">各星期日均業績</h4>
+            <div style={{marginTop:12}}><WeekdayAvgPanel data={weekdayAvg}/></div>
+          </div>
+          <div className="card card-compact">
+            <div className="eyebrow">昨日 vs 前14日均</div>
+            <h4 className="card-title-sm">當日比較</h4>
+            <div style={{marginTop:12}}><YesterdayCompPanel data={yesterdayComp}/></div>
+          </div>
         </div>
         <div className="card">
           <div className="eyebrow">營運指標</div>
