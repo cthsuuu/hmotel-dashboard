@@ -16,8 +16,12 @@ const HMOTEL_CONFIG = {
   //    範例: 'https://script.google.com/macros/s/AKfycbxXXXXX/exec'
   API_URL: 'https://script.google.com/macros/s/AKfycbzcJS4YWBCd-wmH1nz2pEQ1Bj7iyxhxxXNL7nBFjCQeqdZy7UY-NS4uKsLzXgodCU6P/exec',
 
-  // 2. 月營收目標（新台幣）
-  MONTHLY_TARGET: 16500000,
+  // 2. 月營收目標（新台幣）— 各館分開設定
+  MONTHLY_TARGET: {
+    combined: 8000000,   // 兩館合計目標
+    xiyue:    5000000,   // 璽悅館目標
+    jiati:    3000000,   // 佳緹館目標
+  },
 
   // 3. 儀表板標題（可自訂）
   TITLE: 'HMOTEL 營收儀錶板',
@@ -335,27 +339,45 @@ const HOLIDAYS = {
   "2024-01-01":"元旦","2024-02-08":"小年夜","2024-02-09":"除夕","2024-02-10":"春節",
   "2024-02-11":"春節","2024-02-12":"春節","2024-02-13":"春節","2024-02-14":"情人節",
   "2024-02-28":"和平紀念日","2024-04-04":"兒童節","2024-04-05":"清明節",
-  "2024-06-10":"端午節","2024-09-17":"中秋節","2024-10-10":"國慶日","2024-12-25":"聖誕節",
+  "2024-06-10":"端午節","2024-09-17":"中秋節","2024-09-28":"教師節",
+  "2024-10-10":"國慶日","2024-10-25":"光復節","2024-12-25":"行憲紀念日",
   "2025-01-01":"元旦","2025-01-27":"小年夜","2025-01-28":"除夕","2025-01-29":"春節",
   "2025-01-30":"春節","2025-01-31":"春節","2025-02-01":"春節","2025-02-14":"情人節",
   "2025-02-28":"和平紀念日","2025-04-04":"兒童節/清明","2025-05-31":"端午節",
-  "2025-10-06":"中秋節","2025-10-10":"國慶日","2025-12-25":"聖誕節","2025-12-31":"跨年",
+  "2025-09-28":"教師節","2025-10-06":"中秋節","2025-10-10":"國慶日","2025-10-25":"光復節",
+  "2025-12-25":"行憲紀念日","2025-12-31":"跨年",
   "2026-01-01":"元旦","2026-02-14":"情人節","2026-02-16":"小年夜","2026-02-17":"除夕",
   "2026-02-18":"春節","2026-02-19":"春節","2026-02-20":"春節","2026-02-21":"春節",
   "2026-02-28":"和平紀念日","2026-04-04":"兒童節","2026-04-05":"清明節",
-  "2026-06-19":"端午節","2026-09-25":"中秋節","2026-10-10":"國慶日","2026-12-25":"聖誕節","2026-12-31":"跨年",
+  "2026-06-19":"端午節","2026-09-25":"中秋節","2026-09-28":"教師節",
+  "2026-10-10":"國慶日","2026-10-25":"光復節","2026-12-25":"行憲紀念日","2026-12-31":"跨年",
 };
 const HOLIDAY_CLUSTERS = [
+  // 2024
   {start:"2024-02-08",end:"2024-02-14",label:"農曆新年"},
-  {start:"2024-04-04",end:"2024-04-07",label:"清明連假"},
-  {start:"2024-10-10",end:"2024-10-13",label:"國慶連假"},
+  {start:"2024-04-04",end:"2024-04-07",label:"清明兒童節"},
+  {start:"2024-06-08",end:"2024-06-10",label:"端午連假"},
   {start:"2024-12-30",end:"2025-01-01",label:"跨年連假"},
-  {start:"2025-01-25",end:"2025-02-02",label:"農曆新年"},
-  {start:"2025-04-03",end:"2025-04-06",label:"清明連假"},
-  {start:"2025-10-04",end:"2025-10-12",label:"中秋國慶"},
+  // 2025
+  {start:"2025-01-25",end:"2025-02-01",label:"農曆新年"},
+  {start:"2025-02-28",end:"2025-03-02",label:"和平紀念日"},
+  {start:"2025-04-03",end:"2025-04-06",label:"清明兒童節"},
+  {start:"2025-05-30",end:"2025-06-01",label:"端午連假"},
+  {start:"2025-09-27",end:"2025-09-29",label:"教師節連假"},
+  {start:"2025-10-04",end:"2025-10-06",label:"中秋連假"},
+  {start:"2025-10-10",end:"2025-10-12",label:"國慶連假"},
+  {start:"2025-10-24",end:"2025-10-26",label:"光復節連假"},
   {start:"2025-12-30",end:"2026-01-01",label:"跨年連假"},
+  // 2026
   {start:"2026-02-14",end:"2026-02-22",label:"農曆新年"},
-  {start:"2026-04-03",end:"2026-04-06",label:"清明連假"},
+  {start:"2026-02-27",end:"2026-03-01",label:"和平紀念日"},
+  {start:"2026-04-03",end:"2026-04-06",label:"清明兒童節"},
+  {start:"2026-05-01",end:"2026-05-03",label:"勞動節連假"},
+  {start:"2026-06-19",end:"2026-06-21",label:"端午連假"},
+  {start:"2026-09-25",end:"2026-09-28",label:"中秋教師節"},
+  {start:"2026-10-09",end:"2026-10-11",label:"國慶連假"},
+  {start:"2026-10-24",end:"2026-10-26",label:"光復節連假"},
+  {start:"2026-12-25",end:"2026-12-27",label:"行憲紀念日"},
 ];
 const CATEGORIES = ["休息","住宿","加休","加人頭/床","餐飲","其他"];
 const VENUE_MIX = {
@@ -452,6 +474,51 @@ function generateDaily(seed=42){
     cur.setDate(cur.getDate()+1);dayIdx++;
   }
   return out;
+}
+
+// -------- 日期骨架（無假資料）--------
+function generateDailyMeta(windowDays=730){
+  const out={};
+  const today=new Date();today.setHours(0,0,0,0);
+  const start=new Date(today);start.setDate(today.getDate()-windowDays);
+  const end=new Date(today);end.setDate(today.getDate()+30);
+  const cur=new Date(start);
+  while(cur<=end){
+    const ds=isoDate(cur);const dow=cur.getDay();
+    const future=cur>today;const cluster=findHolidayCluster(ds);const hol=isHoliday(ds);
+    out[ds]={date:ds,dow,weekday:dow>=1&&dow<=4,weekend:dow===5||dow===6||dow===0,
+      holiday:!!hol,holidayLabel:holidayLabel(ds),cluster:cluster?cluster.label:null,future,venues:{}};
+    cur.setDate(cur.getDate()+1);
+  }
+  return out;
+}
+
+// -------- CSV 解析 --------
+function parseCSV(text){
+  const lines=text.trim().replace(/^﻿/,'').split('\n');
+  const headers=lines[0].split(',').map(h=>h.trim());
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const cells=lines[i].split(',');
+    if(cells.length<2)continue;
+    const row={};headers.forEach((h,j)=>{row[h]=(cells[j]||'').trim();});
+    if(row.date&&row.venue)rows.push(row);
+  }
+  return rows;
+}
+
+async function loadFromCSV(){
+  const files=['jiati_history.csv','xiyue_history.csv'];
+  const rows=[];
+  for(const f of files){
+    try{
+      const res=await fetch(f+'?t='+Date.now());
+      if(!res.ok)continue;
+      const text=await res.text();
+      rows.push(...parseCSV(text));
+    }catch(e){console.warn('CSV load failed:',f,e);}
+  }
+  return rows;
 }
 
 // -------- API → internal format 轉換 --------
@@ -907,7 +974,7 @@ function App(){
   const[isLive,setIsLive]=useState(false);
   const[loading,setLoading]=useState(true);
   const[loadError,setLoadError]=useState(null);
-  const[monthlyTarget,setMonthlyTarget]=useState(HMOTEL_CONFIG.MONTHLY_TARGET);
+  const[monthlyTargets,setMonthlyTargets]=useState(HMOTEL_CONFIG.MONTHLY_TARGET);
   const[lastUpdated,setLastUpdated]=useState(null);
   const[dimension,setDimension]=useState("day");
   const[view,setView]=useState("combined");
@@ -919,26 +986,53 @@ function App(){
 
   const loadData=useCallback(async()=>{
     setLoading(true);setLoadError(null);
-    const base=generateDaily(42);
-    const apiUrl=HMOTEL_CONFIG.API_URL;
-    if(!apiUrl||apiUrl.trim()===''){setDaily(base);setIsDemo(true);setIsLive(false);setLoading(false);return;}
+    // 使用無假資料骨架作為基礎
+    const base=generateDailyMeta(730);
+    const allRows=[];
+    let hasRealData=false;
+
+    // 1. 優先載入本地 CSV 檔
     try{
-      const res=await fetch(apiUrl+'?t='+Date.now());
-      if(!res.ok)throw new Error('HTTP '+res.status);
-      const json=await res.json();
-      if(json.status!=='ok')throw new Error(json.error||'API error');
-      const merged=mergeApiData(json.rows||[],base);
-      setMonthlyTarget(json.settings?.monthly_target||HMOTEL_CONFIG.MONTHLY_TARGET);
+      const csvRows=await loadFromCSV();
+      if(csvRows.length>0){allRows.push(...csvRows);hasRealData=true;}
+    }catch(e){console.warn('CSV 載入失敗:',e);}
+
+    // 2. 嘗試 API（有更新資料則疊加）
+    const apiUrl=HMOTEL_CONFIG.API_URL;
+    if(apiUrl&&apiUrl.trim()!==''){
+      try{
+        const res=await fetch(apiUrl+'?t='+Date.now());
+        if(res.ok){
+          const json=await res.json();
+          if(json.status==='ok'){
+            allRows.push(...(json.rows||[]));hasRealData=true;
+            const rawTarget=json.settings?.monthly_targets||json.settings?.monthly_target;
+            if(rawTarget!=null){setMonthlyTargets(typeof rawTarget==='object'?rawTarget:HMOTEL_CONFIG.MONTHLY_TARGET);}
+          }
+        }
+      }catch(e){console.warn('API 載入失敗（CSV 資料仍有效）:',e);}
+    }
+
+    if(hasRealData){
+      const merged=mergeApiData(allRows,base);
       setDaily(merged);setIsDemo(false);setIsLive(true);
       setLastUpdated(new Date().toLocaleString('zh-TW'));
-    }catch(e){
-      console.warn('API 載入失敗，使用演示資料:',e);
-      setLoadError(e.message);setDaily(base);setIsDemo(true);setIsLive(false);
+    }else{
+      // 完全無資料時才用假資料示警
+      const fallback=generateDaily(42);
+      setDaily(fallback);setIsDemo(true);setIsLive(false);
     }
     setLoading(false);
   },[]);
 
   useEffect(()=>{loadData();},[loadData]);
+
+  // 依目前檢視館別取對應月目標
+  const monthlyTarget=useMemo(()=>{
+    const t=monthlyTargets;
+    if(typeof t==='number')return t;
+    return t[view]||t.combined||8000000;
+  },[monthlyTargets,view]);
 
   const series=useMemo(()=>daily?buildSeries(daily,dimension,view,customRange):null,[daily,dimension,view,customRange]);
   const monthSnap=useMemo(()=>daily?buildMonthSnapshot(daily,view,monthlyTarget):null,[daily,view,monthlyTarget]);
@@ -959,8 +1053,7 @@ function App(){
 
       {isDemo&&(
         <div className="demo-banner">
-          <span>🎭 <strong>演示模式</strong>｜目前顯示的是示範資料。請在 index.html 頂端的 CONFIG 區塊填入你的 Google Apps Script URL，即可顯示真實業績。</span>
-          {lastUpdated&&<span style={{fontSize:12,color:"var(--hm-gray-mid)"}}>上次更新：{lastUpdated}</span>}
+          <span>⚠️ <strong>離線示範模式</strong>｜無法載入 CSV 資料，目前顯示的是示範資料。</span>
           <button className="btn-ghost-sm" onClick={loadData}>↻ 重新載入</button>
         </div>
       )}
