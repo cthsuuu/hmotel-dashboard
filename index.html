@@ -822,7 +822,7 @@ function buildMonthSnapshot(daily,view,target){
   const todayStr=isoDate(new Date());const ym=todayStr.slice(0,7);
   const allKeys=Object.keys(daily).sort();
   const monthKeys=allKeys.filter(k=>k.slice(0,7)===ym);
-  const elapsed=monthKeys.filter(k=>k<=todayStr&&!daily[k].future);
+  const elapsed=monthKeys.filter(k=>k<todayStr&&!daily[k].future);
   let actual=0;const dailySeries=[];
   for(const k of elapsed){const total=sumCats(catsFor(daily[k],view));actual+=total;dailySeries.push(total);}
   const daysInMonth=new Date(parseInt(ym.slice(0,4)),parseInt(ym.slice(5,7)),0).getDate();
