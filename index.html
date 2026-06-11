@@ -388,7 +388,7 @@ const VENUE_BASE = {xiyue:245000,jiati:165000};
 const VENUE_ROOMS = {xiyue:32,jiati:26};
 const TOTAL_ROOMS = {combined:58,xiyue:32,jiati:26};
 
-function isoDate(d){return d.toISOString().slice(0,10);}
+function isoDate(d){const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`;}
 function isHoliday(ds){return !!HOLIDAYS[ds];}
 function holidayLabel(ds){return HOLIDAYS[ds]||null;}
 function findHolidayCluster(ds){return HOLIDAY_CLUSTERS.find(c=>ds>=c.start&&ds<=c.end)||null;}
@@ -803,7 +803,7 @@ function buildSeries(daily,dimension,view,customRange){
     const past14=allKeys.filter(k=>k<todayStr).slice(-14);const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:0;
     const monthKeys=allKeys.filter(k=>k.slice(0,7)===todayStr.slice(0,7));
     const forecastPts=[];
-    monthKeys.forEach((k,i)=>{if(k<=todayStr)return;const d=daily[k];if(!d)return;const boost=(d.cluster?1.55:d.holiday?1.30:1)*(d.dow===6?1.45:d.dow===5?1.28:d.dow===0?1.12:1);const v=past14Avg*boost/1.15;const idx=rows.findIndex(r=>r.dailyKey===k);if(idx>=0)forecastPts.push({i:idx,v});});
+    monthKeys.forEach((k,i)=>{if(k<=todayStr)return;const d=daily[k];if(!d)return;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);const v=past14Avg*boost/1.15;const idx=rows.findIndex(r=>r.dailyKey===k);if(idx>=0)forecastPts.push({i:idx,v});});
     return{rows,totalsByCat,totals,forecast:forecastPts.length?{points:forecastPts}:null};
   } else if(dimension==="month"){
     const months=aggregateMonthly(daily);const orderedM=Object.keys(months).sort();
@@ -830,7 +830,7 @@ function buildMonthSnapshot(daily,view,target){
   const past14=allKeys.filter(k=>k<todayStr).slice(-14);
   const past14Avg=past14.length?past14.reduce((a,k)=>a+sumCats(catsFor(daily[k],view)),0)/past14.length:dailyAvg;
   let forecastRem=0;
-  for(const k of monthKeys){if(k<=todayStr)continue;const d=daily[k];if(!d)continue;const boost=(d.cluster?1.55:d.holiday?1.30:1)*(d.dow===6?1.45:d.dow===5?1.28:d.dow===0?1.12:1);forecastRem+=past14Avg*boost/1.15;}
+  for(const k of monthKeys){if(k<=todayStr)continue;const d=daily[k];if(!d)continue;const boost=(d.dow===6?1.45:d.dow===5?1.28:1);forecastRem+=past14Avg*boost/1.15;}
   const forecast=actual+forecastRem,completion=actual/target;
   const yesterdayKey=elapsed[elapsed.length-1];const yd=yesterdayKey?daily[yesterdayKey]:null;
   const yRooms=yd?roomsFor(yd,view):{rest:0,stay:0,total:view==="combined"?58:VENUE_ROOMS[view]};
@@ -1068,15 +1068,14 @@ function App(){
       <section className="kpi-strip">
         <KpiCard eyebrow={monthSnap.label+"・實際 + 預估"} big={nfShort(monthSnap.forecast)} tag={monthSnap.forecast>=monthSnap.target?"達標":"未達標"} tagColor={monthSnap.forecast>=monthSnap.target?"ok":"warn"} sub={`目標 ${nfShort(monthSnap.target)}・差 ${nfSigned(monthSnap.forecast-monthSnap.target)}`}><ForecastBar actual={monthSnap.actual} forecast={monthSnap.forecast} target={monthSnap.target} label={monthSnap.label}/></KpiCard>
         <KpiCard eyebrow="本月日均營收" big={nfShort(monthSnap.dailyAvg)} sub={`已過 ${monthSnap.daysElapsed} / ${monthSnap.daysInMonth} 天`} tag={`${nfPct(monthSnap.completion,0)} 進度`} tagColor="neutral"><SparklineLite values={monthSnap.dailySeries} kpi={monthlyTarget/30}/></KpiCard>
-        <KpiCard eyebrow={yoy.mode==="yoy"?"同期比 (YoY)":yoy.mode==="mom"?"月對月 (MoM)":"節慶對比"} big={nfPct(yoy.pct,1)} tag={yoy.pct>=0?"上升":"下降"} tagColor={yoy.pct>=0?"ok":"warn"} sub={`${yoy.thisLabel} ${nfShort(yoy.thisVal)}・${yoy.lastLabel} ${nfShort(yoy.lastVal)}`}>
+        <KpiCard eyebrow={yoy.mode==="yoy"?"同期比 (YoY)":"月對月 (MoM)"} big={nfPct(yoy.pct,1)} tag={yoy.pct>=0?"上升":"下降"} tagColor={yoy.pct>=0?"ok":"warn"} sub={`${yoy.thisLabel} ${nfShort(yoy.thisVal)}・${yoy.lastLabel} ${nfShort(yoy.lastVal)}`}>
           <YoYBars thisYear={yoy.thisVal} lastYear={yoy.lastVal} thisLabel={yoy.thisLabel} lastLabel={yoy.lastLabel}/>
           <div style={{display:"flex",gap:4,marginTop:6}}>
             <button className="tiny-toggle" onClick={()=>setYoyMode("yoy")} data-active={yoyMode==="yoy"}>年對年</button>
             <button className="tiny-toggle" onClick={()=>setYoyMode("mom")} data-active={yoyMode==="mom"}>月對月</button>
-            <button className="tiny-toggle" onClick={()=>setYoyMode("holiday")} data-active={yoyMode==="holiday"}>節慶</button>
           </div>
         </KpiCard>
-        <KpiCard eyebrow="昨日表現" big={nfShort(monthSnap.yesterday.totalRev)} tag={`OCC ${nfPct(monthSnap.yesterday.stay/monthSnap.yesterday.totalRooms,0)}`} tagColor="neutral" sub={`住宿 ${monthSnap.yesterday.stay} 間 ${nfShort(monthSnap.yesterday.stayRev)}・休息 ${monthSnap.yesterday.rest} 次 ${nfShort(monthSnap.yesterday.restRev)}`}><RoomsTwoBar rest={monthSnap.yesterday.rest} stay={monthSnap.yesterday.stay} cap={monthSnap.yesterday.totalRooms} restRev={monthSnap.yesterday.restRev} stayRev={monthSnap.yesterday.stayRev}/></KpiCard>
+        <KpiCard eyebrow="昨日表現" big={nf(monthSnap.yesterday.totalRev)} tag={`住宿率 ${nfPct(monthSnap.yesterday.stay/monthSnap.yesterday.totalRooms,0)}・休息率 ${nfPct(monthSnap.yesterday.rest/monthSnap.yesterday.totalRooms,0)}`} tagColor="neutral" sub={`住宿 ${monthSnap.yesterday.stay}間 ${nf(monthSnap.yesterday.stayRev)}・休息 ${monthSnap.yesterday.rest}次 ${nf(monthSnap.yesterday.restRev)}・其他 ${nf(monthSnap.yesterday.totalRev-monthSnap.yesterday.stayRev-monthSnap.yesterday.restRev)}`}></KpiCard>
       </section>
 
       {/* 主趨勢圖 */}
