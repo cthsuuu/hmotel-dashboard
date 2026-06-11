@@ -565,8 +565,12 @@ function mergeApiData(apiRows, baseDailyData){
       const hol=!!HOLIDAYS[date];
       const seed=(date+venue).split('').reduce((a,b)=>a+b.charCodeAt(0),0);
       const hourly=generateHourlyShape(venue,dow,hol,mulberry32(seed));
-      const checkins=generateCheckinDistribution(venue,dow,hol,rooms.rest,rooms.stay,mulberry32(seed+1));
-      const checkouts=generateCheckoutDistribution(venue,dow,hol,rooms.rest,rooms.stay,mulberry32(seed+2));
+      const checkins=row.checkin_hours&&row.checkin_hours.trim()
+        ?row.checkin_hours.split('|').map(Number)
+        :generateCheckinDistribution(venue,dow,hol,rooms.rest,rooms.stay,mulberry32(seed+1));
+      const checkouts=row.checkout_hours&&row.checkout_hours.trim()
+        ?row.checkout_hours.split('|').map(Number)
+        :generateCheckoutDistribution(venue,dow,hol,rooms.rest,rooms.stay,mulberry32(seed+2));
       merged[date].venues[venue]={categories,total,rooms,hourly,checkins,checkouts};
     }
   }
